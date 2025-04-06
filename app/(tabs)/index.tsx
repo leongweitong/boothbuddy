@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, View, Text } from 'react-native';
-import Mapbox, { MapView, UserLocation, Camera, LocationPuck } from '@rnmapbox/maps';
+import Mapbox, { MapView, UserLocation, Camera, LocationPuck, RasterSource, RasterLayer } from '@rnmapbox/maps';
 import * as Location from "expo-location";
 
 // Set your Mapbox access token
@@ -30,12 +30,12 @@ export default function HomeScreen() {
   }
 
   return (
-    <MapView style={styles.map} styleURL="mapbox://styles/mapbox/streets-v11">
-      <Camera followUserLocation={true} followZoomLevel={20} animationMode="flyTo" />
-      <UserLocation visible={true} androidRenderMode="gps" />
+    <MapView style={styles.map} styleURL="mapbox://styles/weitong0724/cm8putowg008y01qz626t52wq">
+      {/* <Camera followUserLocation={true} followZoomLevel={18} animationMode="flyTo" />
+      <UserLocation visible={true} androidRenderMode="normal" /> */}
 
       {/* show mapview in specify location */}
-      {/* <Camera centerCoordinate={[102.27694254743255, 2.250354266032344]} zoomLevel={21} animationMode="none" /> */}
+      <Camera centerCoordinate={[102.27694254743255, 2.250354266032344]} zoomLevel={17} animationMode="none" />
     </MapView>
   );
 }

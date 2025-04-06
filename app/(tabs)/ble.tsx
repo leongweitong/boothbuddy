@@ -1,78 +1,126 @@
 import React, { useEffect, useState } from "react";
-import {
-  FlatList,
-  ListRenderItemInfo,
-  SafeAreaView,
-  Text,
-  TouchableOpacity,
-  View,
-  StyleSheet,
-  Button,
-} from "react-native";
+import { FlatList, SafeAreaView, Text, View, StyleSheet, Button } from "react-native";
 import { Device } from "react-native-ble-plx";
 import useBLE from "@/useBLE";
 
-const BLEScreen = () => {
-    const { requestBluetoothPermission, scanForPeripherals, stopScan, allDevices } = useBLE();
-    const [isScanning, setIsScanning] = useState(false);
-  
-    useEffect(() => {
-      const initialize = async () => {
-        const granted = await requestBluetoothPermission();
-        if (!granted) {
-          alert("Bluetooth permissions are required.");
-        }
-      };
-      initialize();
-      console.log(allDevices)
-    }, []);
-  
-    const handleScan = () => {
-      if (!isScanning) {
-        setIsScanning(true);
-        scanForPeripherals();
-  
-        setTimeout(() => {
-          stopScan();
-          setIsScanning(false);
-        }, 10000); // Stop scan after 10 seconds
+type Beacon = {
+  id: string;
+  x: number;
+  y: number;
+  rssi: number | null;
+};
+
+type Position = {
+  x: number | null;
+  y: number | null;
+};
+
+const IBEACONS: Beacon[] = [
+  { id: "beacon1", x: 204, y: 10, rssi: null },
+  { id: "beacon2", x: 204, y: 73, rssi: null },
+  { id: "beacon3", x: 123, y: 19, rssi: null },
+];
+
+const BLEScreen: React.FC = () => {
+  const { requestBluetoothPermission, calculateDistance, scanForPeripherals, stopScan, allDevices } = useBLE();
+  const [isScanning, setIsScanning] = useState<boolean>(false);
+  const [userPosition, setUserPosition] = useState<Position>({ x: null, y: null });
+
+  useEffect(() => {
+    const initialize = async () => {
+      const granted = await requestBluetoothPermission();
+      if (!granted) {
+        alert("Bluetooth permissions are required.");
       }
     };
-  
-    const renderDevice = ({ item }: ListRenderItemInfo<Device>) => (
-      <View style={styles.deviceItem}>
-        <Text style={styles.deviceName}>{item.name || "Unnamed Device"}</Text>
-        <Text style={styles.deviceId}>ID: {item.id}</Text>
-        <Text style={styles.deviceId}>ManufacturerData: {item.manufacturerData}</Text>
-        <Text style={styles.deviceId}>RSSI: {item.rssi}</Text>
-      </View>
-    );
-  
-    return (
-      <SafeAreaView style={styles.container}>
-        <View style={styles.header}>
-          <Button
-            title={isScanning ? "Scanning..." : "Scan for Devices"}
-            onPress={handleScan}
-            disabled={isScanning}
-          />
-        </View>
-        <FlatList
-          data={allDevices}
-          keyExtractor={(item) => item.id}
-          renderItem={renderDevice}
-          contentContainerStyle={styles.listContainer}
-          ListEmptyComponent={
-            <Text style={styles.emptyMessage}>
-              {isScanning
-                ? "Scanning for devices..."
-                : "No devices found. Try scanning again."}
-            </Text>
-          }
+    initialize();
+  }, []);
+
+  useEffect(() => {
+    if (allDevices.length > 0) {
+      const updatedBeacons = IBEACONS.map((beacon) => {
+        const device = allDevices.find((d) => d.id === beacon.id || d.name?.includes(beacon.id));
+        return { ...beacon, rssi: device ? device.rssi : null };
+      });
+
+      const estimatedPosition = trilateration(updatedBeacons);
+      setUserPosition(estimatedPosition);
+    }
+  }, [allDevices]);
+
+  const trilateration = (beacons: Beacon[]): Position => {
+    // Filter beacons that have a valid RSSI
+    const validBeacons = beacons.filter((b) => b.rssi !== null);
+
+    // We need at least 3 valid beacons to perform triangulation
+    if (validBeacons.length < 3) return { x: null, y: null };
+
+    const [b1, b2, b3] = validBeacons.slice(0, 3).map((b) => ({
+      x: b.x,
+      y: b.y,
+      r: calculateDistance(b.rssi as number),
+    }));
+
+    const A = 2 * (b2.x - b1.x);
+    const B = 2 * (b2.y - b1.y);
+    const C = 2 * (b3.x - b1.x);
+    const D = 2 * (b3.y - b1.y);
+
+    const E = b2.r ** 2 - b1.r ** 2 - b2.x ** 2 + b1.x ** 2 - b2.y ** 2 + b1.y ** 2;
+    const F = b3.r ** 2 - b1.r ** 2 - b3.x ** 2 + b1.x ** 2 - b3.y ** 2 + b1.y ** 2;
+
+    const denominator = A * D - B * C;
+    if (denominator === 0) return { x: null, y: null };
+
+    const x = (E * D - B * F) / denominator;
+    const y = (A * F - E * C) / denominator;
+
+    return { x: Math.round(x), y: Math.round(y) };
+  };
+
+  const handleScanToggle = () => {
+    if (isScanning) {
+      stopScan();
+      setIsScanning(false);
+    } else {
+      setIsScanning(true);
+      scanForPeripherals();
+    }
+  };
+
+  const renderDevice = ({ item }: { item: Device }) => (
+    <View style={styles.deviceItem}>
+      <Text style={styles.deviceName}>{item.name}</Text>
+      <Text style={styles.deviceId}>ID: {item.id}</Text>
+      <Text style={styles.deviceId}>RSSI: {item.rssi}</Text>
+    </View>
+  );
+
+  return (
+    <SafeAreaView style={styles.container}>
+      <View style={styles.header}>
+        <Button
+          title={isScanning ? "Stop Scanning" : "Start Scanning"}
+          onPress={handleScanToggle}
         />
-      </SafeAreaView>
-    );
-};  
+      </View>
+      <FlatList
+        data={allDevices}
+        keyExtractor={(item) => item.id}
+        renderItem={renderDevice}
+        contentContainerStyle={styles.listContainer}
+        ListEmptyComponent={
+          <Text style={styles.emptyMessage}>
+            {isScanning ? "Scanning for devices..." : "No devices found. Try scanning again."}
+          </Text>
+        }
+      />
+      <Text style={styles.userPosition}>
+        User Position: X={userPosition.x}, Y={userPosition.y}
+      </Text>
+    </SafeAreaView>
+  );
+};
 
 const styles = StyleSheet.create({
   container: {
@@ -107,6 +155,12 @@ const styles = StyleSheet.create({
   emptyMessage: {
     textAlign: "center",
     color: "#666",
+    marginTop: 20,
+  },
+  userPosition: {
+    textAlign: "center",
+    fontSize: 16,
+    fontWeight: "bold",
     marginTop: 20,
   },
 });

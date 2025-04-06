@@ -61,10 +61,18 @@ function useBLE() {
           }
       
           if (device) {
-            if (device.name && device.serviceData && '00005242-0000-1000-8000-00805f9b34fb' in device.serviceData) {
+            if (device.name && device.rssi && device.serviceData && '00005242-0000-1000-8000-00805f9b34fb' in device.serviceData) {
+              const distance = calculateDistance(device.rssi);
+              // console.log(distance.toFixed(2))
               setAllDevices((prevDevices) => {
-                const exists = prevDevices.some((d) => d.id === device.id);
-                return exists ? prevDevices : [...prevDevices, device];
+                const existingIndex = prevDevices.findIndex((d) => d.id === device.id);
+                if (existingIndex !== -1) {
+                  const updatedDevices = [...prevDevices];
+                  updatedDevices[existingIndex] = device;
+                  return updatedDevices;
+                } else {
+                  return [...prevDevices, device];
+                }
               });
             }
           }          
@@ -74,11 +82,16 @@ function useBLE() {
     const stopScan = () => {
       bleManager.stopDeviceScan();
     };
+
+    function calculateDistance(rssi = -55 , measure = -59, multiplier = 2) {
+      return Math.pow(10, (measure - rssi) / (10 * multiplier));
+    }
   
     return {
       requestBluetoothPermission,
       scanForPeripherals,
       stopScan,
+      calculateDistance,
       allDevices,
     };
 }
