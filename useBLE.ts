@@ -86,12 +86,19 @@ function useBLE() {
     function calculateDistance(rssi = -55 , measure = -59, multiplier = 2) {
       return Math.pow(10, (measure - rssi) / (10 * multiplier));
     }
+
+    function calculateHorizontalDistance(rssi = -55, measure = -59, multiplier = 2, beaconHeight = 0) {
+      const distance3D = Math.pow(10, (measure - rssi) / (10 * multiplier));
+      const horizontal = Math.sqrt(Math.max(0, distance3D ** 2 - beaconHeight ** 2));
+      return horizontal === 0 ? 1 : horizontal;
+    }
   
     return {
       requestBluetoothPermission,
       scanForPeripherals,
       stopScan,
       calculateDistance,
+      calculateHorizontalDistance,
       allDevices,
     };
 }
