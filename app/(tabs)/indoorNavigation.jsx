@@ -19,19 +19,39 @@ const IBEACONS = [
 const PATHS = [
   { 
     id: 'path1', 
-    name: 'Main Corridor',
+    name: 'Test Case 1',
     points: [
       { x: 320, y: 120 },
-      { x: 320, y: 630 },
+      { x: 320, y: 660 },
+      { x: 570, y: 660}
     ] 
   },
   { 
     id: 'path2', 
-    name: 'Side Corridor',
+    name: 'Test Case 2',
+    points: [
+      { x: 320, y: 315 },
+      { x: 320, y: 660 },
+      { x: 570, y: 660}
+    ] 
+  },
+  { 
+    id: 'path3', 
+    name: 'Test Case 3',
+    points: [
+      { x: 320, y: 480 },
+      { x: 320, y: 660 },
+      { x: 570, y: 660}
+    ] 
+  },
+  { 
+    id: 'path4', 
+    name: 'Test Case 4',
     points: [
       { x: 200, y: 630 },
-      { x: 250, y: 650 },
-      { x: 320, y: 700 }
+      { x: 330, y: 630 },
+      { x: 380, y: 660 },
+      { x: 570, y: 660}
     ] 
   }
 ];
@@ -62,6 +82,9 @@ const IndoorNavigation = () => {
 
   useEffect(() => {
     scanForPeripherals();
+    // setClosestPath(PATHS[0]);
+    // setClosestPoint({x:320, y:120})
+
     setClosestPath(PATHS[0]);
     setClosestPoint({x:320, y:120})
     return stopScan;
@@ -207,6 +230,7 @@ const IndoorNavigation = () => {
   
         const closest = findClosestPath(newUserPos);
         if (closest && closest.path) {
+          console.log(closest.path)
           setClosestPath(closest.path);
           setClosestPoint(closest.point);
         }
@@ -302,7 +326,7 @@ const IndoorNavigation = () => {
   };
 
   // Render a path segment between two points
-  const renderPathSegment = (start, end, index) => {
+  const renderPathSegment = (start, end, key) => {
     const startPos = scalePosition(start.x, start.y);
     const endPos = scalePosition(end.x, end.y);
   
@@ -312,13 +336,12 @@ const IndoorNavigation = () => {
     const length = Math.sqrt(dx * dx + dy * dy);
     const angle = Math.atan2(dy, dx) * (180 / Math.PI);
   
-    // Midpoint for proper centering
     const centerX = (startPos.left + endPos.left) / 2;
     const centerY = (startPos.top + endPos.top) / 2;
   
     return (
       <View
-        key={`segment-${index}`}
+        key={`segment-${key}`}
         style={{
           position: 'absolute',
           left: centerX - length / 2,
@@ -327,10 +350,12 @@ const IndoorNavigation = () => {
           height: 4,
           backgroundColor: '#fff',
           transform: [{ rotateZ: `${angle}deg` }],
+          zIndex: 10, // ensure it stays visible above others
         }}
       />
     );
   };
+  
 
   return (
     <View style={styles.container}>
@@ -354,11 +379,11 @@ const IndoorNavigation = () => {
         )}
 
         {/* Render the closest path */}
-        {closestPath && closestPath.points.map((point, index) => {
-          const nextPoint = closestPath.points[index + 1];
-          if (!nextPoint) return null;
-          
-          return renderPathSegment(point, nextPoint, index);
+        {closestPath && closestPath.points
+          .slice(0, -1) // Skip the last point, since it has no "next"
+          .map((point, index) => {
+            const nextPoint = closestPath.points[index + 1];
+            return renderPathSegment(point, nextPoint, `${closestPath.id}-${index}`);
         })}
 
         {/* Render the closest point marker */}
@@ -367,6 +392,13 @@ const IndoorNavigation = () => {
             style={[styles.closestPointMarker, scalePosition(closestPoint.x, closestPoint.y)]}
           />
         )}
+
+        {/* Render the destination point (final point in the path) */}
+        {closestPath && closestPath.points.length > 0 && 
+          <View
+            style={[styles.closestPointMarker, scalePosition(closestPath.points[closestPath.points.length - 1].x, closestPath.points[closestPath.points.length - 1].y)]}
+          />
+        }
       </View>
 
       <Text style={styles.info}>
@@ -403,13 +435,16 @@ const styles = StyleSheet.create({
     position: "absolute",
   },
   closestPointMarker: {
-    width: 12,
-    height: 12,
+    width: 20,
+    height: 20,
     backgroundColor: "#FF9800",
-    borderRadius: 6,
+    borderRadius: 10,
     position: "absolute",
     borderWidth: 2,
     borderColor: "white",
+    marginLeft: -10, // 👈 shifts it left by half width
+    marginTop: -10,  // 👈 shifts it up by half height
+    zIndex: 10
   },
   info: {
     fontSize: 16,
