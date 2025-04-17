@@ -85,8 +85,8 @@ const IndoorNavigation = () => {
     // setClosestPath(PATHS[0]);
     // setClosestPoint({x:320, y:120})
 
-    setClosestPath(PATHS[0]);
-    setClosestPoint({x:320, y:120})
+    // setClosestPath(PATHS[0]);
+    // setClosestPoint({x:320, y:120})
     return stopScan;
   }, []);
 
