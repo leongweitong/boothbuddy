@@ -13,6 +13,11 @@ const IBEACONS = [
   { id: "ibeacon1", x: 510, y: 35, rssi: null },
   { id: "ibeacon2", x: 510, y: 190, rssi: null },
   { id: "ibeacon3", x: 295, y: 60, rssi: null },
+  { id: "ibeacon4", x: 335, y: 230, rssi: null },
+  { id: "ibeacon5", x: 290, y: 420, rssi: null },
+  { id: "ibeacon6", x: 370, y: 580, rssi: null },
+  { id: "ibeacon7", x: 240, y: 770, rssi: null },
+  { id: "ibeacon8", x: 530, y: 770, rssi: null },
 ];
 
 // Define paths with waypoints
@@ -66,6 +71,11 @@ const IndoorNavigation = () => {
     ibeacon1: [],
     ibeacon2: [],
     ibeacon3: [],
+    ibeacon4: [],
+    ibeacon5: [],
+    ibeacon6: [],
+    ibeacon7: [],
+    ibeacon8: [],
   });
   
   const displayWidth = window.width;
@@ -201,7 +211,9 @@ const IndoorNavigation = () => {
     // Step 3: Trilateration logic
     if (validBeacons.length >= 3) {
       // console.log(validBeacons)
-      const [b1, b2, b3] = validBeacons.slice(0, 3);
+      const topBeacons = [...validBeacons].sort((a, b) => b.rssi - a.rssi).slice(0, 3);
+
+      const [b1, b2, b3] = topBeacons;
 
       // console.log('ibeacon1', calculateHorizontalDistance(b1.rssi))
       // console.log('ibeacon2', calculateHorizontalDistance(b2.rssi))
@@ -226,13 +238,23 @@ const IndoorNavigation = () => {
   
       if (result && result.x !== null && result.y !== null) {
         const newUserPos = { x: result.x, y: result.y };
-        setUserPosition(newUserPos);
-  
-        const closest = findClosestPath(newUserPos);
-        if (closest && closest.path) {
-          console.log(closest.path)
-          setClosestPath(closest.path);
-          setClosestPoint(closest.point);
+
+        if ( isNaN(newUserPos.x) || isNaN(newUserPos.y) || newUserPos.x < 0 || newUserPos.y < 0 ) return;
+        
+        const THRESHOLD = 2; // pixel distance threshold
+        const dx = newUserPos.x - userPosition.x;
+        const dy = newUserPos.y - userPosition.y;
+        const distanceSquared = dx * dx + dy * dy;
+
+        if (distanceSquared > THRESHOLD * THRESHOLD) {
+          setUserPosition(newUserPos);
+
+          const closest = findClosestPath(newUserPos);
+          if (closest && closest.path) {
+            console.log(closest.path)
+            setClosestPath(closest.path);
+            setClosestPoint(closest.point);
+          }
         }
       }
     }
@@ -243,7 +265,9 @@ const IndoorNavigation = () => {
   
     let result = 0;
   
-    if (absRSSI >= 58 && absRSSI < 64) {
+    if (absRSSI < 58) {
+      return 0.5;
+    } else if (absRSSI >= 58 && absRSSI < 64) {
       // Around 1 meter
       result = Math.log(absRSSI) / Math.log(58);
       return result * 1;
@@ -256,9 +280,13 @@ const IndoorNavigation = () => {
       result = Math.log(absRSSI) / Math.log(70);
       return result * 3;
     } else if (absRSSI >= 76 && absRSSI < 82) {
-      // Around 3 meters
+      // Around 4 meters
       result = Math.log(absRSSI) / Math.log(76);
       return result * 4;
+    } else if (absRSSI >= 82 && absRSSI < 88) {
+      // Around 4 meters
+      result = Math.log(absRSSI) / Math.log(82);
+      return result * 5;
     }
   }  
 
