@@ -94,9 +94,9 @@ packagingOptions {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace 'com.weitong0724.test'
+    namespace 'com.weitong0724.boothbuddy'
     defaultConfig {
-        applicationId 'com.weitong0724.test'
+        applicationId 'com.weitong0724.boothbuddy'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1

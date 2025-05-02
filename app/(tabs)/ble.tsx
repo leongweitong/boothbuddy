@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { FlatList, SafeAreaView, Text, View, StyleSheet, Button } from "react-native";
+import { FlatList, Text, View, StyleSheet, Button, StatusBar } from "react-native";
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { Device } from "react-native-ble-plx";
 import useBLE from "@/useBLE";
 
@@ -98,6 +99,7 @@ const BLEScreen: React.FC = () => {
 
   return (
     <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="#fff" />
       <View style={styles.header}>
         <Button
           title={isScanning ? "Stop Scanning" : "Start Scanning"}

@@ -1,4 +1,4 @@
-package com.weitong0724.test
+package com.weitong0724.boothbuddy
 
 import android.app.Application
 import android.content.res.Configuration

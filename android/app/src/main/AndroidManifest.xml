@@ -34,7 +34,7 @@
         <category android:name="android.intent.category.DEFAULT"/>
         <category android:name="android.intent.category.BROWSABLE"/>
         <data android:scheme="myapp"/>
-        <data android:scheme="com.weitong0724.test"/>
+        <data android:scheme="com.weitong0724.boothbuddy"/>
       </intent-filter>
     </activity>
   </application>

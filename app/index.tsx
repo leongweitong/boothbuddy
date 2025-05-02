@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, SafeAreaView, TextInput, Button, StyleSheet, Alert } from 'react-native';
 import { auth } from '@/FirebaseConfig';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
@@ -8,6 +8,18 @@ const Index = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const router = useRouter();
+
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged((user) => {
+      if (user) {
+        // User is already signed in, redirect to main app
+        router.replace('/(tabs)');
+      }
+    });
+  
+    return unsubscribe; // Clean up the listener on unmount
+  }, []);
+  
 
   const signIn = async () => {
     try {

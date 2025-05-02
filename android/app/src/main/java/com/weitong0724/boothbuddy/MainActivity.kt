@@ -1,4 +1,4 @@
-package com.weitong0724.test
+package com.weitong0724.boothbuddy
 import expo.modules.splashscreen.SplashScreenManager
 
 import android.os.Build
