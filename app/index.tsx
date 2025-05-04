@@ -1,49 +1,33 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, SafeAreaView, TextInput, Button, StyleSheet, Alert } from 'react-native';
+import React, { useState } from 'react';
+import { View, TextInput, Button, StyleSheet, Alert, Image, SafeAreaView, Text } from 'react-native';
 import { auth } from '@/FirebaseConfig';
-import { createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'firebase/auth';
+import { signInWithEmailAndPassword } from 'firebase/auth';
 import { useRouter } from 'expo-router';
+import { Link } from 'expo-router';
+
+const APPICON = require('../assets/images/small_splash.png');
 
 const Index = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const router = useRouter();
-
-  useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged((user) => {
-      if (user) {
-        // User is already signed in, redirect to main app
-        router.replace('/(tabs)');
-      }
-    });
-  
-    return unsubscribe; // Clean up the listener on unmount
-  }, []);
-  
+  // router.replace('/(tabs)');
 
   const signIn = async () => {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       console.log('Signed in as:', userCredential.user.email);
-      router.replace('/(tabs)'); // redirect to your main app tab layout
+      router.replace('/(tabs)');
     } catch (error: any) {
       Alert.alert('Sign in failed', error.message);
     }
   };
 
-  const signUp = async () => {
-    try {
-      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      console.log('Registered:', userCredential.user.email);
-      router.replace('/(tabs)');
-    } catch (error: any) {
-      Alert.alert('Sign up failed', error.message);
-    }
-  };
-
   return (
     <SafeAreaView style={styles.container}>
-      <Text style={styles.title}>Welcome to the App</Text>
+      <View style={styles.iconContainer}>
+        <Image source={APPICON} style={styles.icon} />
+      </View>
 
       <TextInput
         style={styles.input}
@@ -63,12 +47,14 @@ const Index = () => {
       />
 
       <View style={styles.buttonContainer}>
-        <Button title="Sign In" onPress={signIn} />
+        <Button title="Sign In" onPress={signIn} color="#5d3fd3" />
       </View>
 
-      <View style={styles.buttonContainer}>
-        <Button title="Sign Up" onPress={signUp} color="green" />
-      </View>
+      <Link href={{ pathname: '/pages/register' }} asChild>
+        <Text style={{ color: '#5d3fd3', marginTop: 20, textAlign: 'center' }}>
+          Haven't have an account?
+        </Text>
+      </Link>
     </SafeAreaView>
   );
 };
@@ -81,10 +67,14 @@ const styles = StyleSheet.create({
     padding: 20,
     justifyContent: 'center',
   },
-  title: {
-    fontSize: 24,
-    textAlign: 'center',
-    marginBottom: 30,
+  iconContainer: {
+    alignItems: 'center',
+    marginBottom: 40,
+  },
+  icon: {
+    width: 200,
+    height: 200,
+    resizeMode: 'contain',
   },
   input: {
     borderWidth: 1,

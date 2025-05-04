@@ -5,29 +5,45 @@ import { Link } from 'expo-router';
 import { db } from '@/FirebaseConfig';
 import { collection, getDocs } from 'firebase/firestore';
 import { TouchableOpacity } from 'react-native';
+import { auth } from '@/FirebaseConfig';
+import { getDoc, doc } from 'firebase/firestore';
+import { useRouter } from 'expo-router';
 
 export default function HomeScreen() {
+  const router = useRouter();
+  const [userData, setUserData] = useState('');
   const [events, setEvents] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchEvents = async () => {
+    const fetchEventsAndUser = async () => {
       try {
+        // 1. Get events
         const querySnapshot = await getDocs(collection(db, 'events'));
         const eventsData = querySnapshot.docs.map(doc => ({
           id: doc.id,
           ...doc.data(),
         }));
         setEvents(eventsData);
+  
+        // 2. Get current user
+        const currentUser = auth.currentUser;
+        if (currentUser) {
+          const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+          if (userDoc.exists()) {
+            setUserData(userDoc.data());
+            console.log('User data:', userDoc.data());
+          }
+        }
       } catch (error) {
-        console.error('Error fetching events:', error);
+        console.error('Error fetching data:', error);
       } finally {
         setLoading(false);
       }
     };
-
-    fetchEvents();
-  }, []);
+  
+    fetchEventsAndUser();
+  }, []);  
 
   if (loading) {
     return (
@@ -40,6 +56,11 @@ export default function HomeScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+      {userData && (
+        <Text style={{ fontSize: 16, marginBottom: 10 }}>
+          Welcome, {userData.username}
+        </Text>
+      )}
       <Text style={styles.title}>Event List</Text>
       <FlatList
         data={events}

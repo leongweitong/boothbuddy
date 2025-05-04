@@ -1,12 +1,14 @@
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
+import { Stack, useRouter  } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import 'react-native-reanimated';
 
 import { useColorScheme } from '@/hooks/useColorScheme';
+import { onAuthStateChanged } from 'firebase/auth';
+import { auth } from '@/FirebaseConfig';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -16,14 +18,29 @@ export default function RootLayout() {
   const [loaded] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
+  const [authChecked, setAuthChecked] = useState(false);
+
+  const router = useRouter();
 
   useEffect(() => {
-    if (loaded) {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      setAuthChecked(true);
+      if (!user) {
+        // user is logged out
+        router.replace('/');
+      }
+    });
+
+    return unsubscribe; // cleanup on unmount
+  }, []);
+
+  useEffect(() => {
+    if (loaded && authChecked) {
       SplashScreen.hideAsync();
     }
-  }, [loaded]);
+  }, [loaded, authChecked]);
 
-  if (!loaded) {
+  if (!loaded || !authChecked) {
     return null;
   }
 
@@ -31,7 +48,10 @@ export default function RootLayout() {
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <Stack>
         <Stack.Screen name="index" options={{ headerShown: false }} />
+        <Stack.Screen name="/ResetToRoot" options={{ headerShown: false }} />
         <Stack.Screen name="pages/booth" options={{ headerShown: false }} />
+        <Stack.Screen name="pages/register" options={{ headerShown: false }} />
+        <Stack.Screen name="pages/picture" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="+not-found" />
       </Stack>
