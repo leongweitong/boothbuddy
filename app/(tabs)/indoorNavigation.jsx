@@ -18,6 +18,7 @@ const IBEACONS = [
   { id: "ibeacon6", x: 370, y: 580, rssi: null },
   { id: "ibeacon7", x: 240, y: 770, rssi: null },
   { id: "ibeacon8", x: 530, y: 770, rssi: null },
+  { id: "ibeacon9", x: 295, y: 325, rssi: null },
 ];
 
 // Define paths with waypoints
@@ -76,6 +77,7 @@ const IndoorNavigation = () => {
     ibeacon6: [],
     ibeacon7: [],
     ibeacon8: [],
+    ibeacon9: [],
   });
   
   const displayWidth = window.width;

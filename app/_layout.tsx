@@ -49,7 +49,8 @@ export default function RootLayout() {
       <Stack>
         <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen name="/ResetToRoot" options={{ headerShown: false }} />
-        <Stack.Screen name="pages/booth" options={{ headerShown: false }} />
+        <Stack.Screen name="pages/eventDetails" options={{ headerShown: false }} />
+        <Stack.Screen name="pages/boothDetail" options={{ headerShown: false }} />
         <Stack.Screen name="pages/register" options={{ headerShown: false }} />
         <Stack.Screen name="pages/picture" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />

@@ -25,6 +25,7 @@ const Register = () => {
         email,
         userType: 'visitor',
         createdAt: new Date(),
+        user_uid: user.uid
       });
 
       Alert.alert('Congratulations on your successful registration');

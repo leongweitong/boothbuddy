@@ -50,12 +50,22 @@ export default function Home() {
     );
   };
 
+  const navigateToPicture = () => {
+    router.push('/pages/picture');
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+
       <Pressable style={styles.logoutButton} onPress={confirmLogout}>
         <Text style={styles.logoutText}>Logout</Text>
         <FontAwesome name="sign-out" size={20} color="#5d3fd3" />
+      </Pressable>
+
+      <Pressable style={styles.logoutButton} onPress={navigateToPicture}>
+        <Text style={styles.logoutText}>Picture</Text>
+        <FontAwesome name="chevron-right" size={20} color="#5d3fd3" />
       </Pressable>
     </SafeAreaView>
   );
@@ -75,6 +85,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#e6e6fa",
     padding: 12,
     borderRadius: 8,
+    marginBottom: 10
   },
   logoutText: {
     color: "#5d3fd3",
