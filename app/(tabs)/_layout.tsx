@@ -7,8 +7,6 @@ import TabBarBackground from '@/components/ui/TabBarBackground';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { FontAwesome, MaterialCommunityIcons, Ionicons } from '@expo/vector-icons';
-import { onAuthStateChanged } from "firebase/auth";
-import { auth } from "@/FirebaseConfig";
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();

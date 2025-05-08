@@ -3,7 +3,8 @@ import { View, Text, FlatList, ActivityIndicator, StyleSheet, Image, Dimensions,
 import { db } from '@/FirebaseConfig';
 import { collection, getDocs, query, where, doc, getDoc } from 'firebase/firestore';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import Carousel, { Pagination } from 'react-native-snap-carousel';
+// import Carousel, { Pagination } from 'react-native-snap-carousel';
+import Swiper from 'react-native-swiper';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -64,34 +65,28 @@ export default function eventDetails() {
     <ScrollView>
       {/* Image Carousel */}
       {pictures.length > 0 && (
-        <>
-          <Carousel
-            layout={"default"}
-            data={pictures}
-            renderItem={({ item }) => (
-              <Image
-                source={{ uri: item.picture_path }}
-                style={styles.image}
-              />
-            )}
-            sliderWidth={screenWidth}
-            itemWidth={screenWidth}
-            onSnapToItem={index => setActiveIndex(index)}
-          />
-          <Pagination
-            dotsLength={pictures.length}
-            activeDotIndex={activeIndex}
-            dotStyle={{
-              width: 10,
-              height: 10,
-              borderRadius: 5,
-              backgroundColor: '#5d3fd3',
-            }}
-            inactiveDotOpacity={0.4}
-            inactiveDotScale={0.6}
-          />
-        </>
-      )}
+      <View style={{ height: 250 }}>
+        <Swiper
+          // autoplay
+          showsPagination={true}
+          dotColor="lightgray"
+          activeDotColor="#5d3fd3"
+          loop
+        >
+          {pictures.map((item, index) => (
+            <Image
+              key={index}
+              source={{ uri: item.picture_path }}
+              style={{
+                width: screenWidth,
+                height: 250,
+                resizeMode: 'cover',
+              }}
+            />
+          ))}
+        </Swiper>
+      </View>
+    )}
 
       {/* Event Info */}
       {event && (

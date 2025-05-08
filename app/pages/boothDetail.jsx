@@ -3,7 +3,7 @@ import { View, Text, Image, StyleSheet, TouchableOpacity, ActivityIndicator, Dim
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { db } from '@/FirebaseConfig';
 import { collection, query, where, getDocs } from 'firebase/firestore';
-import Carousel, { Pagination } from 'react-native-snap-carousel';
+import Swiper from 'react-native-swiper';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -45,24 +45,27 @@ export default function BoothDetail() {
     <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
       {/* Image Carousel */}
       {pictures.length > 0 && (
-        <>
-          <Carousel
-            data={pictures}
-            renderItem={({ item }) => (
-              <Image source={{ uri: item.picture_path }} style={styles.image} />
-            )}
-            sliderWidth={screenWidth}
-            itemWidth={screenWidth}
-            onSnapToItem={index => setActiveIndex(index)}
-          />
-          <Pagination
-            dotsLength={pictures.length}
-            activeDotIndex={activeIndex}
-            dotStyle={styles.dot}
-            inactiveDotOpacity={0.4}
-            inactiveDotScale={0.6}
-          />
-        </>
+        <View style={{ height: 250 }}>
+          <Swiper
+            // autoplay
+            showsPagination={true}
+            dotColor="lightgray"
+            activeDotColor="#5d3fd3"
+            loop
+          >
+            {pictures.map((item, index) => (
+              <Image
+                key={index}
+                source={{ uri: item.picture_path }}
+                style={{
+                  width: screenWidth,
+                  height: 250,
+                  resizeMode: 'cover',
+                }}
+              />
+            ))}
+          </Swiper>
+        </View>
       )}
 
       {/* Booth Info */}
