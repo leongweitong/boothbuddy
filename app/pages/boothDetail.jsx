@@ -79,7 +79,10 @@ export default function BoothDetail() {
       <View style={styles.buttonContainer}>
         <TouchableOpacity
           style={styles.button}
-          onPress={() => Alert.alert("Navigate", "Navigation function coming soon.")}
+          onPress={() => {
+            router.replace('/indoorNavigation')
+            // Alert.alert("Navigate", "Navigation function coming soon.")
+          }}
         >
           <Text style={styles.buttonText}>Navigate</Text>
         </TouchableOpacity>
