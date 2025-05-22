@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, Image, StyleSheet, TouchableOpacity, ActivityIndicator, Dimensions, ScrollView, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { db } from '@/FirebaseConfig';
-import { collection, query, where, getDocs } from 'firebase/firestore';
+import { db, auth } from '@/FirebaseConfig';
+import { collection, query, where, doc, getDocs, getDoc, addDoc } from 'firebase/firestore';
 import Swiper from 'react-native-swiper';
 
 const { width: screenWidth } = Dimensions.get('window');
@@ -15,23 +15,82 @@ export default function BoothDetail() {
   const [pictures, setPictures] = useState([]);
   const [activeIndex, setActiveIndex] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [userType, setUserType] = useState(null);
+  const [hasSubmitted, setHasSubmitted] = useState(false);
+  const [hasVisited, setHasVisited] = useState(false);
 
   useEffect(() => {
-    const fetchPictures = async () => {
+    const fetchPicturesAndUser = async () => {
       try {
         const picQuery = query(collection(db, 'pictures'), where('belong_id', '==', boothData.id));
         const snapshot = await getDocs(picQuery);
         const pictureList = snapshot.docs.map(doc => doc.data());
         setPictures(pictureList);
+
+        const currentUser = auth.currentUser;
+        console.log(boothData.id)
+        if (currentUser) {
+          const userDocRef = doc(db, 'users', currentUser.uid);
+          const userDoc = await getDoc(userDocRef);
+          if (userDoc.exists()) {
+            const userData = userDoc.data();
+            setUserType(userData.userType);
+
+            if (userData.userType === 'judge') {
+              // Check if user has any evaluation for this booth
+              const evalQuery = query(
+                collection(db, 'evaluations'),
+                where('boothId', '==', boothData.id),
+                where('userId', '==', currentUser.uid)
+              );
+              const evalSnap = await getDocs(evalQuery);
+              
+              // Check if already submitted
+              const submitted = evalSnap.docs.some(doc => doc.data().status === 'submitted');
+              if (submitted) setHasSubmitted(true);
+            }
+
+            if (userData.userType === 'visitor') {
+              const attendQuery = query(
+                collection(db, 'attends'),
+                where('booth_id', '==', boothData.id),
+                where('user_id', '==', currentUser.uid)
+              );
+              const attendSnap = await getDocs(attendQuery);
+              if (!attendSnap.empty) setHasVisited(true);
+            }
+          }
+        }
+
       } catch (error) {
-        console.error('Error fetching booth pictures:', error);
+        console.error('Error:', error);
       } finally {
         setLoading(false);
       }
     };
 
-    fetchPictures();
+    fetchPicturesAndUser();
   }, [boothData.id]);
+
+  const handleVisit = async () => {
+    try {
+      const currentUser = auth.currentUser;
+      if (!currentUser) return;
+
+      const newAttend = {
+        booth_id: boothData.id,
+        user_id: currentUser.uid,
+        timestamp: new Date().toISOString(),
+      };
+
+      await addDoc(collection(db, 'attends'), newAttend);
+      Alert.alert('Success', 'You have visited this booth!');
+      setHasVisited(true);
+    } catch (err) {
+      console.error(err);
+      Alert.alert('Error', 'Failed to record visit.');
+    }
+  };
 
   if (loading) {
     return (
@@ -79,20 +138,28 @@ export default function BoothDetail() {
       <View style={styles.buttonContainer}>
         <TouchableOpacity
           style={styles.button}
-          onPress={() => {
-            router.replace('/indoorNavigation')
-            // Alert.alert("Navigate", "Navigation function coming soon.")
-          }}
+          onPress={() => router.replace('/indoorNavigation')}
         >
           <Text style={styles.buttonText}>Navigate</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity
-          style={[styles.button, { backgroundColor: '#34a853' }]}
-          onPress={() => Alert.alert("Visit", "Visit function coming soon.")}
-        >
-          <Text style={styles.buttonText}>Visit</Text>
-        </TouchableOpacity>
+        {userType === 'visitor' && !hasVisited && (
+          <TouchableOpacity
+            style={[styles.button, { backgroundColor: '#34a853' }]}
+            onPress={handleVisit}
+          >
+            <Text style={styles.buttonText}>Visit</Text>
+          </TouchableOpacity>
+        )}
+
+        {userType === 'judge' && !hasSubmitted && (
+          <TouchableOpacity
+            style={styles.button}
+            onPress={() => router.replace({ pathname: '/pages/evaluate', params: { booth } })}
+          >
+            <Text style={styles.buttonText}>Evaluate</Text>
+          </TouchableOpacity>
+        )}
       </View>
     </ScrollView>
   );

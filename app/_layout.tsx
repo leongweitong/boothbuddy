@@ -52,6 +52,7 @@ export default function RootLayout() {
         <Stack.Screen name="pages/boothDetail" options={{ headerShown: false }} />
         <Stack.Screen name="pages/register" options={{ headerShown: false }} />
         <Stack.Screen name="pages/picture" options={{ headerShown: false }} />
+        <Stack.Screen name="pages/evaluate" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen name="+not-found" />
       </Stack>

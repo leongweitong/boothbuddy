@@ -1,13 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { StyleSheet, View, Text, StatusBar, FlatList, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Link } from 'expo-router';
-import { db } from '@/FirebaseConfig';
-import { collection, getDocs } from 'firebase/firestore';
+import { Link, useRouter } from 'expo-router';
+import { db, auth } from '@/FirebaseConfig';
+import { collection, getDocs, doc, getDoc } from 'firebase/firestore';
 import { TouchableOpacity } from 'react-native';
-import { auth } from '@/FirebaseConfig';
-import { getDoc, doc } from 'firebase/firestore';
-import { useRouter } from 'expo-router';
 
 export default function HomeScreen() {
   const router = useRouter();
