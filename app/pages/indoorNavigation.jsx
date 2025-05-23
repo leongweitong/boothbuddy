@@ -1,96 +1,103 @@
 import React, { useEffect, useState, useRef } from "react";
-import { View, Image, Text, StyleSheet, useWindowDimensions } from "react-native";
+import { View, Image, Text, StyleSheet, useWindowDimensions, ActivityIndicator } from "react-native";
 import useBLE from "@/useBLE";
 import KalmanFilter from "@/kalmanFilter";
-
-const INDOOR_MAP = require("../../assets/images/ixora_block_c.jpg");
-
-// Logical pixel dimensions to match FloorPlanPicker
-const IMAGE_WIDTH = 732;
-const IMAGE_HEIGHT = 817;
-
-const IBEACONS = [
-  { id: "ibeacon1", x: 510, y: 35, rssi: null },
-  { id: "ibeacon2", x: 510, y: 190, rssi: null },
-  { id: "ibeacon3", x: 295, y: 60, rssi: null },
-  { id: "ibeacon4", x: 335, y: 230, rssi: null },
-  { id: "ibeacon5", x: 290, y: 420, rssi: null },
-  { id: "ibeacon6", x: 370, y: 580, rssi: null },
-  { id: "ibeacon7", x: 240, y: 770, rssi: null },
-  { id: "ibeacon8", x: 530, y: 770, rssi: null },
-  { id: "ibeacon9", x: 295, y: 325, rssi: null },
-];
-
-// Define paths with waypoints
-const PATHS = [
-  { 
-    id: 'path1', 
-    name: 'Test Case 1',
-    points: [
-      { x: 320, y: 120 },
-      { x: 320, y: 660 },
-      { x: 570, y: 660}
-    ] 
-  },
-  { 
-    id: 'path2', 
-    name: 'Test Case 2',
-    points: [
-      { x: 320, y: 315 },
-      { x: 320, y: 660 },
-      { x: 570, y: 660}
-    ] 
-  },
-  { 
-    id: 'path3', 
-    name: 'Test Case 3',
-    points: [
-      { x: 320, y: 480 },
-      { x: 320, y: 660 },
-      { x: 570, y: 660}
-    ] 
-  },
-  { 
-    id: 'path4', 
-    name: 'Test Case 4',
-    points: [
-      { x: 200, y: 630 },
-      { x: 330, y: 630 },
-      { x: 380, y: 660 },
-      { x: 570, y: 660}
-    ] 
-  }
-];
+import { useLocalSearchParams, useRouter } from 'expo-router';
+import { doc, getDoc, getDocs, collection, query, where } from "firebase/firestore";
+import { db } from "@/FirebaseConfig";
 
 const IndoorNavigation = () => {
   const { scanForPeripherals, stopScan, allDevices, calculateDistance, calculateHorizontalDistance } = useBLE();
-  const [userPosition, setUserPosition] = useState({ x: null, y: null });
+  const { booth, event } = useLocalSearchParams();
+  const boothData = JSON.parse(booth);
+  const eventData = JSON.parse(event);
+  console.log(boothData)
   const window = useWindowDimensions();
+
+  const [imageSize, setImageSize] = useState({ width: 0, height: 0 });
+  const [paths, setPaths] = useState([]);
+  const [ibeacons, setIbeacons] = useState([]);
+  const [userPosition, setUserPosition] = useState({ x: null, y: null });
+  const [boothLocation, setBoothLocation] = useState(null);
   const [closestPath, setClosestPath] = useState(null);
   const [closestPoint, setClosestPoint] = useState(null);
-  const rssiHistory = useRef({
-    ibeacon1: [],
-    ibeacon2: [],
-    ibeacon3: [],
-    ibeacon4: [],
-    ibeacon5: [],
-    ibeacon6: [],
-    ibeacon7: [],
-    ibeacon8: [],
-    ibeacon9: [],
-  });
-  
-  const displayWidth = window.width;
-  const displayHeight = displayWidth * (IMAGE_HEIGHT / IMAGE_WIDTH);
-  const scaleX = displayWidth / IMAGE_WIDTH;
-  const scaleY = displayHeight / IMAGE_HEIGHT;
+  const [loading, setLoading] = useState(true);
+  const rssiHistory = useRef({});
+  const kalmanFilters = useRef({});
 
-  const kalmanFilters = useRef(
-    IBEACONS.reduce((acc, beacon) => {
-      acc[beacon.id] = new KalmanFilter();
-      return acc;
-    }, {})
-  );  
+  const [displayWidth, setDisplayWidth] = useState(0);
+  const [displayHeight, setDisplayHeight] = useState(0);
+  const [scaleX, setScaleX] = useState(0);
+  const [scaleY, setXcaleY] = useState(0);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        // Fetch ibeacons
+        const ibeaconsRef = collection(db, 'ibeacons');
+        const ibeaconsQuery = query(ibeaconsRef, where('event_id', '==', eventData.id));
+        const ibeaconsSnapshot = await getDocs(ibeaconsQuery);
+
+        const ibeaconsData = ibeaconsSnapshot.docs.map(doc => {
+          const data = doc.data();
+          return {
+            // id: doc.id,
+            id: data.name,
+            x: data.coordinate.x,
+            y: data.coordinate.y,
+            rssi: null,
+          };
+        });
+
+        // Initialize RSSI history
+        rssiHistory.current = ibeaconsData.reduce((acc, beacon) => {
+          acc[beacon.id] = [];
+          return acc;
+        }, {});
+
+        // Initialize Kalman filters
+        kalmanFilters.current = ibeaconsData.reduce((acc, beacon) => {
+          acc[beacon.id] = new KalmanFilter();
+          return acc;
+        }, {});
+
+        // Fetch paths
+        const pathsRef = collection(db, 'paths');
+        const pathsQuery = query(pathsRef, where('event_id', '==', eventData.id));
+        const pathsSnapshot = await getDocs(pathsQuery);
+        const pathsData = pathsSnapshot.docs.map(doc => doc.data());
+
+        // Set state
+        setIbeacons(ibeaconsData);
+        setPaths(pathsData);
+        setBoothLocation({ x: boothData.coordinate.x, y: boothData.coordinate.y });
+
+        // Load image size
+        if (eventData.floor_plan) {
+          Image.getSize(
+            eventData.floor_plan,
+            (width, height) => {
+              console.log("Image size:", width, height);
+              setImageSize({ width, height });
+
+              setDisplayWidth(window.width)
+              setDisplayHeight(window.width * (height / width))
+              setScaleX(window.width / width)
+              setXcaleY((window.width * (height / width)) / height)
+            },
+            (err) => console.error("Failed to get image size:", err)
+          );
+        }
+
+      } catch (error) {
+        console.error("Error loading data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   useEffect(() => {
     scanForPeripherals();
@@ -102,57 +109,6 @@ const IndoorNavigation = () => {
     return stopScan;
   }, []);
 
-  // const SMOOTHING_FACTOR = 0.2;
-
-  // const smoothRSSI = (oldRSSI, newRSSI) => {
-  //   if (oldRSSI === null) return newRSSI;
-  //   return oldRSSI + SMOOTHING_FACTOR * (newRSSI - oldRSSI);
-  // };
-  
-  const median = (arr) => {
-    const sorted = [...arr].sort((a, b) => a - b);
-    const mid = Math.floor(sorted.length / 2);
-    return sorted.length % 2 !== 0
-      ? sorted[mid]
-      : (sorted[mid - 1] + sorted[mid]) / 2;
-  };
-
-  function weightedAverage(arr) {
-    const weights = arr.map((_, i) => i + 1); // recent gets higher weight
-    const sumWeights = weights.reduce((a, b) => a + b, 0);
-    const result =
-      arr.reduce((sum, val, i) => sum + val * weights[i], 0) / sumWeights;
-    return result;
-  }  
-
-  // Find the closest path and point to the user
-  const findClosestPath = (userPos) => {
-    if (!userPos || userPos.x === null || userPos.y === null) return null;
-    
-    let closestPath = null;
-    let closestPoint = null;
-    let minDistance = Infinity;
-    
-    // Check each path
-    for (const path of PATHS) {
-      // Check each point in the path
-      for (let i = 0; i < path.points.length; i++) {
-        const point = path.points[i];
-        const dx = point.x - userPos.x;
-        const dy = point.y - userPos.y;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-        
-        if (distance < minDistance) {
-          minDistance = distance;
-          closestPath = path;
-          closestPoint = point;
-        }
-      }
-    }
-    
-    return { path: closestPath, point: closestPoint, distance: minDistance };
-  };
-
   useEffect(() => {
     if (allDevices.length === 0) return;
   
@@ -160,7 +116,7 @@ const IndoorNavigation = () => {
     const PIXELS_PER_METER = 155 / 3;
   
     // Step 1: Extract relevant beacon data
-    const beaconDevices = IBEACONS.map((beacon) => {
+    const beaconDevices = ibeacons.map((beacon) => {
       const matched = allDevices.find(
         (d) => d.name?.includes(beacon.id)
       );
@@ -195,7 +151,7 @@ const IndoorNavigation = () => {
           const avgRSSI = weightedAverage(history);
     
           // ✅ Apply Kalman filter after smoothing
-          const beaconId = IBEACONS.find((b) => device.name === b.id)?.id;
+          const beaconId = ibeacons.find((b) => device.name === b.id)?.id;
           const kalman = kalmanFilters.current[beaconId];
           const filteredRSSI = kalman ? kalman.filter(avgRSSI) : avgRSSI;
     
@@ -260,7 +216,43 @@ const IndoorNavigation = () => {
         }
       }
     }
-  }, [allDevices]);  
+  }, [allDevices]); 
+
+  function weightedAverage(arr) {
+    const weights = arr.map((_, i) => i + 1); // recent gets higher weight
+    const sumWeights = weights.reduce((a, b) => a + b, 0);
+    const result =
+      arr.reduce((sum, val, i) => sum + val * weights[i], 0) / sumWeights;
+    return result;
+  }  
+
+  // Find the closest path and point to the user
+  const findClosestPath = (userPos) => {
+    if (!userPos || userPos.x === null || userPos.y === null) return null;
+    
+    let closestPath = null;
+    let closestPoint = null;
+    let minDistance = Infinity;
+    
+    // Check each path
+    for (const path of paths) {
+      // Check each point in the path
+      for (let i = 0; i < path.points.length; i++) {
+        const point = path.points[i];
+        const dx = point.x - userPos.x;
+        const dy = point.y - userPos.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        
+        if (distance < minDistance) {
+          minDistance = distance;
+          closestPath = path;
+          closestPoint = point;
+        }
+      }
+    }
+    
+    return { path: closestPath, point: closestPoint, distance: minDistance };
+  }; 
   
   function getDistanceFromRSSI(rssi) {
     const absRSSI = Math.abs(rssi);
@@ -386,16 +378,23 @@ const IndoorNavigation = () => {
     );
   };
   
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#5d3fd3" />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
       <View style={{ width: displayWidth, height: displayHeight }}>
         <Image
-          source={INDOOR_MAP}
+          source={{uri: eventData.floor_plan}}
           style={{ width: displayWidth, height: displayHeight, resizeMode: "contain" }}
         />
 
-        {IBEACONS.map((beacon, index) => (
+        {ibeacons.map((beacon, index) => (
           <View
             key={index}
             style={[styles.beaconMarker, scalePosition(beacon.x, beacon.y)]}
@@ -434,6 +433,9 @@ const IndoorNavigation = () => {
       <Text style={styles.info}>
         User Position: X={userPosition.x?.toFixed(1)}, Y={userPosition.y?.toFixed(1)}
       </Text>
+      <Text style={styles.info}>
+        Booth Position: X={boothData.coordinate.x}, Y={boothData.coordinate.y}
+      </Text>
       
       {closestPath && (
         <Text style={styles.pathInfo}>
@@ -445,6 +447,7 @@ const IndoorNavigation = () => {
 };
 
 const styles = StyleSheet.create({
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   container: {
     flex: 1,
     alignItems: "center",

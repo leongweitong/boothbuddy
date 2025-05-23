@@ -21,7 +21,6 @@ export default function HomeScreen() {
           id: doc.id,
           ...doc.data(),
         }));
-        console.log(eventsData)
         setEvents(eventsData);
   
         // 2. Get current user
@@ -73,7 +72,7 @@ export default function HomeScreen() {
             <Link
                 href={{
                 pathname: '/pages/eventDetails',
-                params: { event_id: item.id },
+                params: { event: JSON.stringify(item)},
                 }}
                 asChild
             >

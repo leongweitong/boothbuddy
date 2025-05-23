@@ -8,7 +8,7 @@ import Swiper from 'react-native-swiper';
 const { width: screenWidth } = Dimensions.get('window');
 
 export default function BoothDetail() {
-  const { booth } = useLocalSearchParams();
+  const { booth, event } = useLocalSearchParams();
   const router = useRouter();
   const boothData = JSON.parse(booth);
 
@@ -28,7 +28,6 @@ export default function BoothDetail() {
         setPictures(pictureList);
 
         const currentUser = auth.currentUser;
-        console.log(boothData.id)
         if (currentUser) {
           const userDocRef = doc(db, 'users', currentUser.uid);
           const userDoc = await getDoc(userDocRef);
@@ -138,7 +137,7 @@ export default function BoothDetail() {
       <View style={styles.buttonContainer}>
         <TouchableOpacity
           style={styles.button}
-          onPress={() => router.replace('/indoorNavigation')}
+          onPress={() => router.replace({ pathname: '/pages/indoorNavigation', params: { booth, event } })}
         >
           <Text style={styles.buttonText}>Navigate</Text>
         </TouchableOpacity>

@@ -9,34 +9,25 @@ import Swiper from 'react-native-swiper';
 const { width: screenWidth } = Dimensions.get('window');
 
 export default function eventDetails() {
-  const { event_id } = useLocalSearchParams();
+  const { event: eventString } = useLocalSearchParams();
+  const event = JSON.parse(eventString);
   const router = useRouter();
 
-  const [event, setEvent] = useState(null);
   const [booths, setBooths] = useState([]);
   const [pictures, setPictures] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeIndex, setActiveIndex] = useState(0);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        // 1. Fetch event info
-        const eventDoc = await getDoc(doc(db, 'events', event_id));
-        if (eventDoc.exists()) {
-          setEvent(eventDoc.data());
-        }
-
-        // 2. Fetch pictures
         const picturesRef = collection(db, 'pictures');
-        const picQuery = query(picturesRef, where('belong_id', '==', event_id));
+        const picQuery = query(picturesRef, where('belong_id', '==', event.id));
         const picSnapshot = await getDocs(picQuery);
         const picturesData = picSnapshot.docs.map(doc => doc.data());
         setPictures(picturesData);
 
-        // 3. Fetch booths
         const boothsRef = collection(db, 'booths');
-        const boothQuery = query(boothsRef, where('event_id', '==', event_id));
+        const boothQuery = query(boothsRef, where('event_id', '==', event.id));
         const boothSnapshot = await getDocs(boothQuery);
         const boothsData = boothSnapshot.docs.map(doc => ({
           id: doc.id,
@@ -50,8 +41,8 @@ export default function eventDetails() {
       }
     };
 
-    if (event_id) fetchData();
-  }, [event_id]);
+    fetchData();
+  }, []);
 
   if (loading) {
     return (
@@ -119,6 +110,7 @@ export default function eventDetails() {
                 pathname: '/pages/boothDetail',
                 params: {
                   booth: JSON.stringify(item),
+                  event: JSON.stringify(event)
                 }
               })}
             >

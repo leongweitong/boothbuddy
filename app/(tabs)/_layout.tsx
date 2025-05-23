@@ -39,13 +39,13 @@ export default function TabLayout() {
           tabBarIcon: ({ color }) => <Ionicons name="bluetooth" size={24} color={color} />,
         }}
       />
-      <Tabs.Screen
+      {/* <Tabs.Screen
         name="indoorNavigation"
         options={{
           title: 'Navigate',
           tabBarIcon: ({ color }) => <MaterialCommunityIcons name="map-marker-path" size={24} color={color} />,
         }}
-      />
+      /> */}
       <Tabs.Screen
         name="menu"
         options={{
