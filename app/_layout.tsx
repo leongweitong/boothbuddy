@@ -4,10 +4,9 @@ import { Stack, useRouter  } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useEffect } from 'react';
-
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { onAuthStateChanged } from 'firebase/auth';
-import { auth } from '@/FirebaseConfig';
+import { auth } from 'FirebaseConfig';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();

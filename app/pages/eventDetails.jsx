@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, FlatList, ActivityIndicator, StyleSheet, Image, Dimensions, TouchableOpacity, ScrollView } from 'react-native';
-import { db } from '@/FirebaseConfig';
+import { db } from 'FirebaseConfig';
 import { collection, getDocs, query, where, doc, getDoc } from 'firebase/firestore';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 // import Carousel, { Pagination } from 'react-native-snap-carousel';

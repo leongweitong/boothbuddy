@@ -39,4 +39,4 @@ app-example
 
 app.json
 
-FirebaseConfig.ts
+.env

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, TextInput, Button, StyleSheet, Alert, Image, SafeAreaView, Text } from 'react-native';
-import { auth } from '@/FirebaseConfig';
+import { auth } from 'FirebaseConfig';
 import { signInWithEmailAndPassword } from 'firebase/auth';
 import { useRouter } from 'expo-router';
 import { Link } from 'expo-router';

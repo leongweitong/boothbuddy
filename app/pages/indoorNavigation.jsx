@@ -4,14 +4,68 @@ import useBLE from "@/useBLE";
 import KalmanFilter from "@/kalmanFilter";
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { doc, getDoc, getDocs, collection, query, where } from "firebase/firestore";
-import { db } from "@/FirebaseConfig";
+import { db } from "FirebaseConfig";
+
+const test = [
+  {
+    x: 310,
+    y: 175
+  },
+  {
+    x: 310,
+    y: 260
+  },
+  {
+    x: 310,
+    y: 360
+  },
+  {
+    x: 310,
+    y: 460
+  },
+  {
+    x: 310,
+    y: 570
+  },
+  {
+    x: 310,
+    y: 85
+  },
+  {
+    x: 375,
+    y: 110
+  },
+  {
+    x: 441,
+    y: 119
+  },
+  {
+    x: 520,
+    y: 85
+  },
+  {
+    x: 520,
+    y: 170
+  },
+  {
+    x: 310,
+    y: 642
+  },
+  {
+    x: 386,
+    y: 671
+  },
+  {
+    x: 477,
+    y: 672
+  },
+]
 
 const IndoorNavigation = () => {
   const { scanForPeripherals, stopScan, allDevices, calculateDistance, calculateHorizontalDistance } = useBLE();
   const { booth, event } = useLocalSearchParams();
   const boothData = JSON.parse(booth);
   const eventData = JSON.parse(event);
-  console.log(boothData)
   const window = useWindowDimensions();
 
   const [imageSize, setImageSize] = useState({ width: 0, height: 0 });
@@ -21,6 +75,7 @@ const IndoorNavigation = () => {
   const [boothLocation, setBoothLocation] = useState(null);
   const [closestPath, setClosestPath] = useState(null);
   const [closestPoint, setClosestPoint] = useState(null);
+  const [presetPoints, setPresetPoints] = useState([]);
   const [loading, setLoading] = useState(true);
   const rssiHistory = useRef({});
   const kalmanFilters = useRef({});
@@ -67,10 +122,17 @@ const IndoorNavigation = () => {
         const pathsSnapshot = await getDocs(pathsQuery);
         const pathsData = pathsSnapshot.docs.map(doc => doc.data());
 
+        // Fetch points
+        const pointsRef = collection(db, 'points');
+        const pointsQuery = query(pointsRef, where('event_id', '==', eventData.id));
+        const pointsSnapshot = await getDocs(pointsQuery);
+        const allPoints = pointsSnapshot.docs.flatMap(doc => doc.data().coordinate || []);
+
         // Set state
         setIbeacons(ibeaconsData);
         setPaths(pathsData);
         setBoothLocation({ x: boothData.coordinate.x, y: boothData.coordinate.y });
+        setPresetPoints(allPoints);
 
         // Load image size
         if (eventData.floor_plan) {
@@ -199,19 +261,26 @@ const IndoorNavigation = () => {
 
         if ( isNaN(newUserPos.x) || isNaN(newUserPos.y) || newUserPos.x < 0 || newUserPos.y < 0 ) return;
         
-        const THRESHOLD = 2; // pixel distance threshold
-        const dx = newUserPos.x - userPosition.x;
-        const dy = newUserPos.y - userPosition.y;
-        const distanceSquared = dx * dx + dy * dy;
-
-        if (distanceSquared > THRESHOLD * THRESHOLD) {
-          setUserPosition(newUserPos);
-
-          const closest = findClosestPath(newUserPos);
-          if (closest && closest.path) {
-            console.log(closest.path)
-            setClosestPath(closest.path);
-            setClosestPoint(closest.point);
+        if(!eventData.preset_position) {
+          const THRESHOLD = 2; // pixel distance threshold
+          const dx = newUserPos.x - userPosition.x;
+          const dy = newUserPos.y - userPosition.y;
+          const distanceSquared = dx * dx + dy * dy;
+  
+          if (distanceSquared > THRESHOLD * THRESHOLD) {
+            setUserPosition(newUserPos);
+  
+            const closest = findClosestPath(newUserPos);
+            if (closest && closest.path) {
+              console.log(closest.path)
+              setClosestPath(closest.path);
+              setClosestPoint(closest.point);
+            }
+          }
+        } else {
+          const closest = findClosestPresetPoint(newUserPos);
+          if (closest?.point) {
+            setUserPosition(closest.point);
           }
         }
       }
@@ -224,7 +293,27 @@ const IndoorNavigation = () => {
     const result =
       arr.reduce((sum, val, i) => sum + val * weights[i], 0) / sumWeights;
     return result;
-  }  
+  }
+
+  const findClosestPresetPoint = (userPos) => {
+    if (!userPos || userPos.x == null || userPos.y == null || presetPoints.length === 0) return null;
+
+    let closestPoint = null;
+    let minDistance = Infinity;
+
+    for (const point of presetPoints) {
+      const dx = point.x - userPos.x;
+      const dy = point.y - userPos.y;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+
+      if (distance < minDistance) {
+        minDistance = distance;
+        closestPoint = point;
+      }
+    }
+
+    return { point: closestPoint, distance: minDistance };
+  };
 
   // Find the closest path and point to the user
   const findClosestPath = (userPos) => {
@@ -400,6 +489,13 @@ const IndoorNavigation = () => {
             style={[styles.beaconMarker, scalePosition(beacon.x, beacon.y)]}
           />
         ))}
+
+        {/* {test.map((beacon, index) => (
+          <View
+            key={index}
+            style={[styles.beaconMarker, scalePosition(beacon.x, beacon.y)]}
+          />
+        ))} */}
 
         {userPosition.x !== null && userPosition.y !== null && (
           <View
