@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { StyleSheet, View, Text, StatusBar, FlatList, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Link, useRouter } from 'expo-router';
-import { db, auth } from 'FirebaseConfig';
+import { db, auth } from '@/FirebaseConfig';
 import { collection, getDocs, doc, getDoc } from 'firebase/firestore';
 import { TouchableOpacity } from 'react-native';
 

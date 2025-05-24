@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, Image, StyleSheet, TouchableOpacity, ActivityIndicator, Dimensions, ScrollView, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { db, auth } from 'FirebaseConfig';
+import { db, auth } from '@/FirebaseConfig';
 import { collection, query, where, doc, getDocs, getDoc, addDoc } from 'firebase/firestore';
 import Swiper from 'react-native-swiper';
 

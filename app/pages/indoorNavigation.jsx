@@ -4,7 +4,7 @@ import useBLE from "@/useBLE";
 import KalmanFilter from "@/kalmanFilter";
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { doc, getDoc, getDocs, collection, query, where } from "firebase/firestore";
-import { db } from "FirebaseConfig";
+import { db } from "@/FirebaseConfig";
 
 const test = [
   {
