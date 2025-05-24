@@ -10,7 +10,7 @@ const firebaseConfig = {
   projectId: "boothbuddy-2359b",
   storageBucket: "boothbuddy-2359b.firebasestorage.app",
   messagingSenderId: "552126727280",
-  appId: "1:552126727280:web:97cc1c296092ddfe1aa0b5",
+  appId: "1:552126727280:web:97cc1c296092ddfe1aa0b5"
 };
 
 // Initialize Firebase
