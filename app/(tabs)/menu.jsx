@@ -22,12 +22,12 @@ export default function Home() {
     if (user) {
       try {
         await signOut(auth);
-        router.replace("/ResetToRoot");
+        router.replace("/resetToRoot");
       } catch (error) {
         Alert.alert("Logout failed", error.message);
       }
     } else {
-      router.replace("/ResetToRoot");
+      router.replace("/resetToRoot");
     }
   };
 

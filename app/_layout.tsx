@@ -6,7 +6,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useState, useEffect } from 'react';
 import { useColorScheme } from '@/hooks/useColorScheme';
 import { onAuthStateChanged } from 'firebase/auth';
-import { auth } from '@/FirebaseConfig';
+import { auth } from '../FirebaseConfig';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
@@ -46,7 +46,7 @@ export default function RootLayout() {
     <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
       <Stack>
         <Stack.Screen name="index" options={{ headerShown: false }} />
-        <Stack.Screen name="/ResetToRoot" options={{ headerShown: false }} />
+        <Stack.Screen name="/resetToRoot" options={{ headerShown: false }} />
         <Stack.Screen name="pages/eventDetails" options={{ headerShown: false }} />
         <Stack.Screen name="pages/boothDetail" options={{ headerShown: false }} />
         <Stack.Screen name="pages/indoorNavigation" options={{ headerShown: false }} />
