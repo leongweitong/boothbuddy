@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { FlatList, Text, View, StyleSheet, Button, StatusBar } from "react-native";
+import { FlatList, Text, View, StyleSheet, Button, StatusBar, TouchableOpacity } from "react-native";
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Device } from "react-native-ble-plx";
 import useBLE from "@/useBLE";
@@ -101,10 +101,9 @@ const BLEScreen: React.FC = () => {
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="#fff" />
       <View style={styles.header}>
-        <Button
-          title={isScanning ? "Stop Scanning" : "Start Scanning"}
-          onPress={handleScanToggle}
-        />
+        <TouchableOpacity style={styles.scanButton} onPress={handleScanToggle}>
+          <Text style={{color: 'white'}}>{isScanning ? "Stop Scanning" : "Start Scanning"}</Text>
+        </TouchableOpacity>
       </View>
       <FlatList
         data={allDevices}
@@ -117,9 +116,9 @@ const BLEScreen: React.FC = () => {
           </Text>
         }
       />
-      <Text style={styles.userPosition}>
+      {/* <Text style={styles.userPosition}>
         User Position: X={userPosition.x}, Y={userPosition.y}
-      </Text>
+      </Text> */}
     </SafeAreaView>
   );
 };
@@ -164,6 +163,12 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "bold",
     marginTop: 20,
+  },
+  scanButton: {
+    backgroundColor: '#5d3fd3',
+    paddingVertical: 14,
+    borderRadius: 8,
+    alignItems: 'center',
   },
 });
 

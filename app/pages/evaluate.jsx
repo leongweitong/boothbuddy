@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, Alert } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView, Alert, ActivityIndicator, SafeAreaView, StatusBar } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { FontAwesome } from '@expo/vector-icons';
 import { db, auth } from '@/FirebaseConfig';
@@ -13,6 +13,7 @@ import {
   doc,
   updateDoc,
 } from 'firebase/firestore';
+import { Ionicons } from '@expo/vector-icons';
 
 const StarQuestion = ({ question, value, onChange }) => (
   <View style={styles.questionBlock}>
@@ -41,6 +42,7 @@ export default function EvaluatePage() {
   const [responses, setResponses] = useState({});
   const [evaluationId, setEvaluationId] = useState(null); // for updating draft
   const [status, setStatus] = useState('draft');
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchQuestions = async () => {
@@ -88,6 +90,7 @@ export default function EvaluatePage() {
           setEvaluationId(draft.id);
           setResponses(draft.data().responses || {});
         }
+        setLoading(false)
 
       } catch (err) {
         console.error("Error fetching questions:", err);
@@ -140,58 +143,91 @@ export default function EvaluatePage() {
     }
   };
 
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#5d3fd3" />
+      </SafeAreaView>
+    );
+  }
+
   return (
-    <ScrollView contentContainerStyle={styles.container}>
-      <Text style={styles.title}>Evaluate {boothData.booth_name}</Text>
+    <SafeAreaView style={styles.safeArea}>
+      <StatusBar barStyle="dark-content" backgroundColor="#fff" />
 
-      {questions.map((q, index) => (
-        <View key={q.id}>
-          <Text>{index + 1}.</Text>
-          {q.type === 'star' && (
-            <StarQuestion
-              question={q.question}
-              value={responses[q.id] || 0}
-              onChange={val => handleResponseChange(q.id, val)}
-            />
-          )}
-          {q.type === 'feedback' && (
-            <View style={styles.commentBlock}>
-              <Text style={styles.label}>{q.question}</Text>
-              <TextInput
-                style={styles.textArea}
-                placeholder="Write your feedback here..."
-                multiline
-                numberOfLines={4}
-                value={responses[q.id] || ''}
-                onChangeText={text => handleResponseChange(q.id, text)}
+      <TouchableOpacity
+        onPress={() => router.back()}
+        style={{
+          position: 'absolute',
+          top: 50,
+          left: 20,
+          zIndex: 10,
+          backgroundColor: 'white',
+          padding: 10,
+          borderRadius: 8,
+          flexDirection: 'row',
+          alignItems: 'center'
+        }}
+      >
+        <Ionicons name="arrow-back" size={20} color="#5d3fd3" />
+      </TouchableOpacity>
+
+      <ScrollView contentContainerStyle={styles.container}>
+        <Text style={styles.title}>Evaluate {boothData.booth_name}</Text>
+        {questions.map((q, index) => (
+          <View key={q.id}>
+            <Text>{index + 1}.</Text>
+            {q.type === 'star' && (
+              <StarQuestion
+                question={q.question}
+                value={responses[q.id] || 0}
+                onChange={val => handleResponseChange(q.id, val)}
               />
-            </View>
-          )}
-        </View>
-      ))}
+            )}
+            {q.type === 'feedback' && (
+              <View style={styles.commentBlock}>
+                <Text style={styles.label}>{q.question}</Text>
+                <TextInput
+                  style={styles.textArea}
+                  placeholder="Write your feedback here..."
+                  multiline
+                  numberOfLines={4}
+                  value={responses[q.id] || ''}
+                  onChangeText={text => handleResponseChange(q.id, text)}
+                />
+              </View>
+            )}
+          </View>
+        ))}
 
-      <TouchableOpacity style={styles.draftButton} onPress={() => saveEvaluation(false)}>
-        <Text style={styles.submitButtonText}>Save as Draft</Text>
-      </TouchableOpacity>
+        <TouchableOpacity style={styles.draftButton} onPress={() => saveEvaluation(false)}>
+          <Text style={styles.submitButtonText}>Save as Draft</Text>
+        </TouchableOpacity>
 
-      <TouchableOpacity style={styles.submitButton} onPress={() => saveEvaluation(true)}>
-        <Text style={styles.submitButtonText}>Submit Evaluation</Text>
-      </TouchableOpacity>
-    </ScrollView>
+        <TouchableOpacity style={styles.submitButton} onPress={() => saveEvaluation(true)}>
+          <Text style={styles.submitButtonText}>Submit Evaluation</Text>
+        </TouchableOpacity>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'white' },
+  safeArea: {
+    flex: 1,
+    backgroundColor: '#fff',
+  },
   container: {
     padding: 20,
-    paddingBottom: 50,
     backgroundColor: '#fff',
   },
   title: {
     fontSize: 22,
     fontWeight: 'bold',
     textAlign: 'center',
-    marginBottom: 20,
+    marginBottom: 30,
+    marginTop: StatusBar.currentHeight
   },
   questionBlock: {
     marginBottom: 25,

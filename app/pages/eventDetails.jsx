@@ -5,6 +5,7 @@ import { collection, getDocs, query, where, doc, getDoc } from 'firebase/firesto
 import { useLocalSearchParams, useRouter } from 'expo-router';
 // import Carousel, { Pagination } from 'react-native-snap-carousel';
 import Swiper from 'react-native-swiper';
+import { Ionicons } from '@expo/vector-icons';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -53,7 +54,23 @@ export default function eventDetails() {
   }
 
   return (
-    <ScrollView>
+    <ScrollView style={{backgroundColor: 'white'}}>
+      <TouchableOpacity
+        onPress={() => router.back()}
+        style={{
+          position: 'absolute',
+          top: 40,
+          left: 20,
+          zIndex: 10,
+          backgroundColor: 'white',
+          padding: 10,
+          borderRadius: 8,
+          flexDirection: 'row',
+          alignItems: 'center'
+        }}
+      >
+        <Ionicons name="arrow-back" size={20} color="#5d3fd3" />
+      </TouchableOpacity>
       {/* Image Carousel */}
       {pictures.length > 0 && (
       <View style={{ height: 250 }}>
@@ -126,7 +143,7 @@ export default function eventDetails() {
 }
 
 const styles = StyleSheet.create({
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'white' },
   image: {
     width: screenWidth,
     height: 250,
@@ -136,7 +153,6 @@ const styles = StyleSheet.create({
   eventInfo: {
     marginBottom: 20,
     paddingHorizontal: 12,
-    backgroundColor: '#f8f8f8',
     borderRadius: 8,
   },
   eventTitle: {
@@ -162,7 +178,9 @@ const styles = StyleSheet.create({
     textAlign: 'center'
   },
   boothContainer: {
+    marginBottom: 20,
     paddingHorizontal: 12,
+    borderRadius: 8,
   },
   card: {
     backgroundColor: '#fff',

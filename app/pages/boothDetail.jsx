@@ -4,6 +4,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { db, auth } from '@/FirebaseConfig';
 import { collection, query, where, doc, getDocs, getDoc, addDoc } from 'firebase/firestore';
 import Swiper from 'react-native-swiper';
+import { Ionicons } from '@expo/vector-icons';
 
 const { width: screenWidth } = Dimensions.get('window');
 
@@ -100,7 +101,24 @@ export default function BoothDetail() {
   }
 
   return (
-    <ScrollView contentContainerStyle={{ paddingBottom: 100 }}>
+    <ScrollView style={{backgroundColor: 'white'}} contentContainerStyle={{ paddingBottom: 100 }}>
+      <TouchableOpacity
+        onPress={() => router.back()}
+        style={{
+          position: 'absolute',
+          top: 40,
+          left: 20,
+          zIndex: 10,
+          backgroundColor: 'white',
+          padding: 10,
+          borderRadius: 8,
+          flexDirection: 'row',
+          alignItems: 'center'
+        }}
+      >
+        <Ionicons name="arrow-back" size={20} color="#5d3fd3" />
+      </TouchableOpacity>
+
       {/* Image Carousel */}
       {pictures.length > 0 && (
         <View style={{ height: 250 }}>
@@ -137,7 +155,7 @@ export default function BoothDetail() {
       <View style={styles.buttonContainer}>
         <TouchableOpacity
           style={styles.button}
-          onPress={() => router.replace({ pathname: '/pages/indoorNavigation', params: { booth, event } })}
+          onPress={() => router.push({ pathname: '/pages/indoorNavigation', params: { booth, event } })}
         >
           <Text style={styles.buttonText}>Navigate</Text>
         </TouchableOpacity>
@@ -154,7 +172,7 @@ export default function BoothDetail() {
         {userType === 'judge' && !hasSubmitted && (
           <TouchableOpacity
             style={styles.button}
-            onPress={() => router.replace({ pathname: '/pages/evaluate', params: { booth } })}
+            onPress={() => router.push({ pathname: '/pages/evaluate', params: { booth } })}
           >
             <Text style={styles.buttonText}>Evaluate</Text>
           </TouchableOpacity>
@@ -166,7 +184,7 @@ export default function BoothDetail() {
 
 
 const styles = StyleSheet.create({
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'white' },
   image: {
     width: screenWidth,
     height: 250,
@@ -182,7 +200,6 @@ const styles = StyleSheet.create({
   boothInfo: {
     paddingHorizontal: 12,
     paddingVertical: 12,
-    backgroundColor: '#f8f8f8',
     marginTop: 10,
     borderRadius: 8,
   },

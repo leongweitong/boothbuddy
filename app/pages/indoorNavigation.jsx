@@ -1,10 +1,11 @@
 import React, { useEffect, useState, useRef } from "react";
-import { View, Image, Text, StyleSheet, useWindowDimensions, ActivityIndicator } from "react-native";
+import { View, Image, Text, StyleSheet, useWindowDimensions, ActivityIndicator, TouchableOpacity } from "react-native";
 import useBLE from "@/useBLE";
 import KalmanFilter from "@/kalmanFilter";
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { doc, getDoc, getDocs, collection, query, where } from "firebase/firestore";
 import { db } from "@/FirebaseConfig";
+import { Ionicons } from '@expo/vector-icons';
 
 const test = [
   {
@@ -61,8 +62,10 @@ const test = [
   },
 ]
 
+import ArrowIcon from '../../assets/images/arrow-marker.png'
+
 const IndoorNavigation = () => {
-  const { scanForPeripherals, stopScan, allDevices, calculateDistance, calculateHorizontalDistance } = useBLE();
+  const { scanForPeripherals, stopScan, allDevices, requestBluetoothPermission } = useBLE();
   const { booth, event } = useLocalSearchParams();
   const boothData = JSON.parse(booth);
   const eventData = JSON.parse(event);
@@ -84,6 +87,8 @@ const IndoorNavigation = () => {
   const [displayHeight, setDisplayHeight] = useState(0);
   const [scaleX, setScaleX] = useState(0);
   const [scaleY, setXcaleY] = useState(0);
+  const previousPosition = useRef({ x: null, y: null });
+  const router = useRouter();
 
   useEffect(() => {
     const fetchData = async () => {
@@ -139,7 +144,7 @@ const IndoorNavigation = () => {
           Image.getSize(
             eventData.floor_plan,
             (width, height) => {
-              console.log("Image size:", width, height);
+              // console.log("Image size:", width, height);
               setImageSize({ width, height });
 
               setDisplayWidth(window.width)
@@ -162,20 +167,24 @@ const IndoorNavigation = () => {
   }, []);
 
   useEffect(() => {
-    scanForPeripherals();
-    // setClosestPath(PATHS[0]);
-    // setClosestPoint({x:320, y:120})
 
-    // setClosestPath(PATHS[1]);
-    // setClosestPoint({x:320, y:315})
+    const initialize = async () => {
+      const granted = await requestBluetoothPermission();
+      if (!granted) {
+        alert("Bluetooth permissions are required.");
+      } else {
+        scanForPeripherals();
+      }
+    };
+
+    initialize();
     return stopScan;
   }, []);
 
   useEffect(() => {
     if (allDevices.length === 0) return;
   
-    const MAX_HISTORY = 20;
-    const PIXELS_PER_METER = 155 / 3;
+    const MAX_HISTORY = 10;
   
     // Step 1: Extract relevant beacon data
     const beaconDevices = ibeacons.map((beacon) => {
@@ -187,7 +196,7 @@ const IndoorNavigation = () => {
         ? {
             name: matched.name,
             id: matched.id,
-            rssi: matched.rssi,
+            rssi: matched.rssi + 6,
             x: beacon.x,
             y: beacon.y,
           }
@@ -232,6 +241,7 @@ const IndoorNavigation = () => {
     if (validBeacons.length >= 3) {
       // console.log(validBeacons)
       const topBeacons = [...validBeacons].sort((a, b) => b.rssi - a.rssi).slice(0, 3);
+      // console.log(topBeacons)
 
       const [b1, b2, b3] = topBeacons;
 
@@ -239,25 +249,28 @@ const IndoorNavigation = () => {
       // console.log('ibeacon2', calculateHorizontalDistance(b2.rssi))
       // console.log('ibeacon3', calculateHorizontalDistance(b3.rssi))
 
-      console.log('ibeacon1', getDistanceFromRSSI(b1.rssi))
-      console.log('ibeacon2', getDistanceFromRSSI(b2.rssi))
-      console.log('ibeacon3', getDistanceFromRSSI(b3.rssi))
+      // console.log(eventData.pixels_per_meter)
+      // console.log(b1.name, getDistanceFromRSSI(b1.rssi))
+      // console.log(b2.name, getDistanceFromRSSI(b2.rssi))
+      // console.log(b3.name, getDistanceFromRSSI(b3.rssi))
 
-      // console.log('ibeacon1', b1.rssi)
-      // console.log('ibeacon2', b2.rssi)
-      // console.log('ibeacon3', b3.rssi)
+      console.log(b1.name, b1.rssi)
+      console.log(b2.name, b2.rssi)
+      console.log(b3.name, b3.rssi)
   
       const result = trilateration(
         { x: b1.x, y: b1.y },
         { x: b2.x, y: b2.y },
         { x: b3.x, y: b3.y },
-        getDistanceFromRSSI(b1.rssi) * PIXELS_PER_METER,
-        getDistanceFromRSSI(b2.rssi) * PIXELS_PER_METER,
-        getDistanceFromRSSI(b3.rssi) * PIXELS_PER_METER
+        getDistanceFromRSSI(b1.rssi) * eventData.pixels_per_meter,
+        getDistanceFromRSSI(b2.rssi) * eventData.pixels_per_meter,
+        getDistanceFromRSSI(b3.rssi) * eventData.pixels_per_meter
       );
   
       if (result && result.x !== null && result.y !== null) {
         const newUserPos = { x: result.x, y: result.y };
+
+          // console.log(calculateAngle(previousPosition, newUserPos))
 
         if ( isNaN(newUserPos.x) || isNaN(newUserPos.y) || newUserPos.x < 0 || newUserPos.y < 0 ) return;
         
@@ -268,11 +281,12 @@ const IndoorNavigation = () => {
           const distanceSquared = dx * dx + dy * dy;
   
           if (distanceSquared > THRESHOLD * THRESHOLD) {
+            previousPosition.current = { ...userPosition };
             setUserPosition(newUserPos);
   
             const closest = findClosestPath(newUserPos);
             if (closest && closest.path) {
-              console.log(closest.path)
+              // console.log(closest.path)
               setClosestPath(closest.path);
               setClosestPoint(closest.point);
             }
@@ -280,12 +294,30 @@ const IndoorNavigation = () => {
         } else {
           const closest = findClosestPresetPoint(newUserPos);
           if (closest?.point) {
+            if(closest.point.x === userPosition.x && closest.point.y === userPosition.y) return;
+
+            previousPosition.current = { ...userPosition };
             setUserPosition(closest.point);
+            const closestPath = findClosestPath(closest.point);
+            if (closestPath && closestPath.path) {
+              // console.log(closestPath.path)
+              setClosestPath(closestPath.path);
+              setClosestPoint(closestPath.point);
+            }
           }
         }
       }
     }
-  }, [allDevices]); 
+  }, [allDevices]);
+
+  const calculateAngle = (prev, curr) => {
+    const dx = curr.x - prev.x;
+    const dy = curr.y - prev.y;
+    console.log(dy, dx)
+    // let angle = 90 - ((Math.atan2(dy, dx) * 180) / Math.PI);
+    return (Math.atan2(dy, dx) * 180) / Math.PI;
+  };
+
 
   function weightedAverage(arr) {
     const weights = arr.map((_, i) => i + 1); // recent gets higher weight
@@ -477,30 +509,71 @@ const IndoorNavigation = () => {
 
   return (
     <View style={styles.container}>
+
+      <TouchableOpacity
+        onPress={() => router.back()}
+        style={{
+          position: 'absolute',
+          top: 40,
+          left: 20,
+          zIndex: 10,
+          backgroundColor: 'white',
+          padding: 10,
+          borderRadius: 8,
+          flexDirection: 'row',
+          alignItems: 'center'
+        }}
+      >
+        <Ionicons name="arrow-back" size={20} color="#5d3fd3" />
+      </TouchableOpacity>
+
       <View style={{ width: displayWidth, height: displayHeight }}>
         <Image
           source={{uri: eventData.floor_plan}}
           style={{ width: displayWidth, height: displayHeight, resizeMode: "contain" }}
         />
 
-        {ibeacons.map((beacon, index) => (
-          <View
-            key={index}
-            style={[styles.beaconMarker, scalePosition(beacon.x, beacon.y)]}
-          />
-        ))}
-
-        {/* {test.map((beacon, index) => (
+        {/* {ibeacons.map((beacon, index) => (
           <View
             key={index}
             style={[styles.beaconMarker, scalePosition(beacon.x, beacon.y)]}
           />
         ))} */}
 
-        {userPosition.x !== null && userPosition.y !== null && (
+        {/*{presetPoints.map((beacon, index) => (
           <View
-            style={[styles.userMarker, scalePosition(userPosition.x, userPosition.y)]}
+            key={index}
+            style={[styles.beaconMarker, scalePosition(beacon.x, beacon.y)]}
           />
+        ))}*/}
+
+        {userPosition.x !== null && userPosition.y !== null && (
+          <>
+            {/* <View
+              style={[styles.userMarker, scalePosition(userPosition.x, userPosition.y)]}
+            /> */}
+
+            {/* <View
+              style={[
+                styles.arrow,
+                scalePosition(userPosition.x, userPosition.y),
+                {
+                  transform: [{ rotate: `${calculateAngle(previousPosition.current, userPosition)}deg` }]
+                }
+              ]}
+            /> */}
+
+            <Image
+              source={ArrowIcon}
+              style={[
+                styles.arrowImage,
+                scalePosition(userPosition.x, userPosition.y),
+                {
+                  transform: [{ rotate: `${calculateAngle(previousPosition.current, userPosition)}deg` }],
+                }
+              ]}
+            />
+          </>
         )}
 
         {/* Render the closest path */}
@@ -526,7 +599,7 @@ const IndoorNavigation = () => {
         }
       </View>
 
-      <Text style={styles.info}>
+      {/* <Text style={styles.info}>
         User Position: X={userPosition.x?.toFixed(1)}, Y={userPosition.y?.toFixed(1)}
       </Text>
       <Text style={styles.info}>
@@ -537,13 +610,13 @@ const IndoorNavigation = () => {
         <Text style={styles.pathInfo}>
           Closest Path: {closestPath.name}
         </Text>
-      )}
+      )} */}
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'white' },
   container: {
     flex: 1,
     alignItems: "center",
@@ -562,6 +635,14 @@ const styles = StyleSheet.create({
     backgroundColor: "red",
     borderRadius: 7.5,
     position: "absolute",
+  },
+  arrowImage: {
+    width: 20,
+    height: 20,
+    position: 'absolute',
+    marginLeft: -10, // center horizontally
+    marginTop: -10,  // center vertically
+    zIndex: 10,
   },
   closestPointMarker: {
     width: 20,
