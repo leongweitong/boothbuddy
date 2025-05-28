@@ -34,7 +34,7 @@ const StarQuestion = ({ question, value, onChange }) => (
 );
 
 export default function EvaluatePage() {
-  const { booth } = useLocalSearchParams();
+  const { booth, userType } = useLocalSearchParams();
   const router = useRouter();
   const boothData = JSON.parse(booth);
 
@@ -58,23 +58,44 @@ export default function EvaluatePage() {
         }
 
         const boothQuestionDoc = boothQuestionSnap.docs[0];
-        const questionIds = boothQuestionDoc.data().questions;
 
-        // Step 2: Fetch each question using the IDs
-        const questionPromises = questionIds.map(async (qid) => {
-          const questionDoc = await getDocs(query(
-            collection(db, 'questions'),
-            where('__name__', '==', qid)
-          ));
-          if (!questionDoc.empty) {
-            const qData = questionDoc.docs[0];
-            return { id: qData.id, ...qData.data() };
-          }
-          return null;
-        });
-
-        const questionsList = (await Promise.all(questionPromises)).filter(q => q !== null);
-        setQuestions(questionsList);
+        if(userType === 'judge'){
+          const questionIds = boothQuestionDoc.data().questions;
+  
+          // Step 2: Fetch each question using the IDs
+          const questionPromises = questionIds.map(async (qid) => {
+            const questionDoc = await getDocs(query(
+              collection(db, 'questions'),
+              where('__name__', '==', qid)
+            ));
+            if (!questionDoc.empty) {
+              const qData = questionDoc.docs[0];
+              return { id: qData.id, ...qData.data() };
+            }
+            return null;
+          });
+  
+          const questionsList = (await Promise.all(questionPromises)).filter(q => q !== null);
+          setQuestions(questionsList);
+        } else {
+          const questionIds = boothQuestionDoc.data().visitor_questions;
+  
+          // Step 2: Fetch each question using the IDs
+          const questionPromises = questionIds.map(async (qid) => {
+            const questionDoc = await getDocs(query(
+              collection(db, 'questions'),
+              where('__name__', '==', qid)
+            ));
+            if (!questionDoc.empty) {
+              const qData = questionDoc.docs[0];
+              return { id: qData.id, ...qData.data() };
+            }
+            return null;
+          });
+  
+          const questionsList = (await Promise.all(questionPromises)).filter(q => q !== null);
+          setQuestions(questionsList);
+        }
 
         // Step 3: Try to load draft
         const draftSnapshot = await getDocs(
@@ -159,7 +180,7 @@ export default function EvaluatePage() {
         onPress={() => router.back()}
         style={{
           position: 'absolute',
-          top: 50,
+          top: 40,
           left: 20,
           zIndex: 10,
           backgroundColor: 'white',
@@ -173,7 +194,7 @@ export default function EvaluatePage() {
       </TouchableOpacity>
 
       <ScrollView contentContainerStyle={styles.container}>
-        <Text style={styles.title}>Evaluate {boothData.booth_name}</Text>
+        <Text style={styles.title}>{userType==='judge'? 'Evaluation':'Feedback'} For {boothData.booth_name}</Text>
         {questions.map((q, index) => (
           <View key={q.id}>
             <Text>{index + 1}.</Text>
@@ -205,7 +226,7 @@ export default function EvaluatePage() {
         </TouchableOpacity>
 
         <TouchableOpacity style={styles.submitButton} onPress={() => saveEvaluation(true)}>
-          <Text style={styles.submitButtonText}>Submit Evaluation</Text>
+          <Text style={styles.submitButtonText}>Submit {userType==='judge'? 'Evaluation':'Feedback'}</Text>
         </TouchableOpacity>
       </ScrollView>
     </SafeAreaView>
@@ -227,7 +248,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     textAlign: 'center',
     marginBottom: 30,
-    marginTop: StatusBar.currentHeight
+    marginTop: StatusBar.currentHeight + 30
   },
   questionBlock: {
     marginBottom: 25,

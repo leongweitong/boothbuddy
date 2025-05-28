@@ -58,6 +58,17 @@ export default function BoothDetail() {
               );
               const attendSnap = await getDocs(attendQuery);
               if (!attendSnap.empty) setHasVisited(true);
+
+              const evalQuery = query(
+                collection(db, 'evaluations'),
+                where('boothId', '==', boothData.id),
+                where('userId', '==', currentUser.uid)
+              );
+              const evalSnap = await getDocs(evalQuery);
+              
+              // Check if already submitted
+              const submitted = evalSnap.docs.some(doc => doc.data().status === 'submitted');
+              if (submitted) setHasSubmitted(true);
             }
           }
         }
@@ -162,17 +173,26 @@ export default function BoothDetail() {
 
         {userType === 'visitor' && !hasVisited && (
           <TouchableOpacity
-            style={[styles.button, { backgroundColor: '#34a853' }]}
+            style={[styles.button, {backgroundColor: '#f3f3f3'}]}
             onPress={handleVisit}
           >
-            <Text style={styles.buttonText}>Visit</Text>
+            <Text style={[styles.buttonText, {color: '#5d3fd3'}]}>Visit</Text>
+          </TouchableOpacity>
+        )}
+
+        {userType === 'visitor' && !hasSubmitted && (
+          <TouchableOpacity
+            style={styles.button}
+            onPress={() => router.push({ pathname: '/pages/evaluate', params: { booth, userType } })}
+          >
+            <Text style={styles.buttonText}>Feedback</Text>
           </TouchableOpacity>
         )}
 
         {userType === 'judge' && !hasSubmitted && (
           <TouchableOpacity
             style={styles.button}
-            onPress={() => router.push({ pathname: '/pages/evaluate', params: { booth } })}
+            onPress={() => router.push({ pathname: '/pages/evaluate', params: { booth, userType } })}
           >
             <Text style={styles.buttonText}>Evaluate</Text>
           </TouchableOpacity>
