@@ -171,32 +171,47 @@ export default function BoothDetail() {
           <Text style={styles.buttonText}>Navigate</Text>
         </TouchableOpacity>
 
-        {userType === 'visitor' && !hasVisited && (
+        {/* VISITOR - Visit */}
+        {userType === 'visitor' && !hasVisited ? (
           <TouchableOpacity
-            style={[styles.button, {backgroundColor: '#f3f3f3'}]}
+            style={[styles.button, { backgroundColor: '#f3f3f3' }]}
             onPress={handleVisit}
           >
-            <Text style={[styles.buttonText, {color: '#5d3fd3'}]}>Visit</Text>
+            <Text style={[styles.buttonText, { color: '#5d3fd3' }]}>Visit</Text>
           </TouchableOpacity>
-        )}
+        ) : userType === 'visitor' && hasVisited ? (
+          <TouchableOpacity style={[styles.button, styles.disabledButton]} disabled>
+            <Text style={styles.disabledButtonText}>Visited</Text>
+          </TouchableOpacity>
+        ) : null}
 
-        {userType === 'visitor' && !hasSubmitted && (
+        {/* VISITOR - Feedback */}
+        {userType === 'visitor' && !hasSubmitted ? (
           <TouchableOpacity
             style={styles.button}
             onPress={() => router.push({ pathname: '/pages/evaluate', params: { booth, userType } })}
           >
             <Text style={styles.buttonText}>Feedback</Text>
           </TouchableOpacity>
-        )}
+        ) : userType === 'visitor' && hasSubmitted ? (
+          <TouchableOpacity style={[styles.button, styles.disabledButton]} disabled>
+            <Text style={styles.disabledButtonText}>Submitted</Text>
+          </TouchableOpacity>
+        ) : null}
 
-        {userType === 'judge' && !hasSubmitted && (
+        {/* JUDGE - Evaluate */}
+        {userType === 'judge' && !hasSubmitted ? (
           <TouchableOpacity
             style={styles.button}
             onPress={() => router.push({ pathname: '/pages/evaluate', params: { booth, userType } })}
           >
             <Text style={styles.buttonText}>Evaluate</Text>
           </TouchableOpacity>
-        )}
+        ) : userType === 'judge' && hasSubmitted ? (
+          <TouchableOpacity style={[styles.button, styles.disabledButton]} disabled>
+            <Text style={styles.disabledButtonText}>Evaluated</Text>
+          </TouchableOpacity>
+        ) : null}
       </View>
     </ScrollView>
   );
@@ -253,5 +268,15 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '600',
     fontSize: 16,
+  },
+  disabledButton: {
+    backgroundColor: '#e0e0e0',
+    borderWidth: 1,
+    borderColor: '#ccc',
+  },
+
+  disabledButtonText: {
+    color: '#999',
+    textAlign: 'center',
   },
 });

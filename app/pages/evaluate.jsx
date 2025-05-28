@@ -157,7 +157,7 @@ export default function EvaluatePage() {
       }
 
       Alert.alert(final ? "Submitted" : "Saved", final ? "Thank you for your evaluation!" : "Draft saved.");
-      if (final) router.back();
+      if (final) router.replace('/(tabs)');
     } catch (err) {
       console.error("Error saving evaluation:", err);
       Alert.alert("Error", "Something went wrong. Please try again.");
