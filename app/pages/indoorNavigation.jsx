@@ -123,7 +123,7 @@ const IndoorNavigation = () => {
 
         // Fetch paths
         const pathsRef = collection(db, 'paths');
-        const pathsQuery = query(pathsRef, where('event_id', '==', eventData.id));
+        const pathsQuery = query(pathsRef, where('booth_id', '==', boothData.id));
         const pathsSnapshot = await getDocs(pathsQuery);
         const pathsData = pathsSnapshot.docs.map(doc => doc.data());
 
@@ -254,9 +254,9 @@ const IndoorNavigation = () => {
       // console.log(b2.name, getDistanceFromRSSI(b2.rssi))
       // console.log(b3.name, getDistanceFromRSSI(b3.rssi))
 
-      console.log(b1.name, b1.rssi)
-      console.log(b2.name, b2.rssi)
-      console.log(b3.name, b3.rssi)
+      // console.log(b1.name, b1.rssi)
+      // console.log(b2.name, b2.rssi)
+      // console.log(b3.name, b3.rssi)
   
       const result = trilateration(
         { x: b1.x, y: b1.y },
@@ -294,7 +294,6 @@ const IndoorNavigation = () => {
         } else {
           const closest = findClosestPresetPoint(newUserPos);
           if (closest?.point) {
-            if(closest.point.x === userPosition.x && closest.point.y === userPosition.y) return;
 
             previousPosition.current = { ...userPosition };
             setUserPosition(closest.point);
@@ -313,7 +312,7 @@ const IndoorNavigation = () => {
   const calculateAngle = (prev, curr) => {
     const dx = curr.x - prev.x;
     const dy = curr.y - prev.y;
-    console.log(dy, dx)
+    // console.log((Math.atan2(dy, dx) * 180) / Math.PI)
     // let angle = 90 - ((Math.atan2(dy, dx) * 180) / Math.PI);
     return (Math.atan2(dy, dx) * 180) / Math.PI;
   };
@@ -540,12 +539,12 @@ const IndoorNavigation = () => {
           />
         ))} */}
 
-        {/*{presetPoints.map((beacon, index) => (
+        {/* {presetPoints.map((beacon, index) => (
           <View
             key={index}
             style={[styles.beaconMarker, scalePosition(beacon.x, beacon.y)]}
           />
-        ))}*/}
+        ))} */}
 
         {userPosition.x !== null && userPosition.y !== null && (
           <>
@@ -640,8 +639,8 @@ const styles = StyleSheet.create({
     width: 20,
     height: 20,
     position: 'absolute',
-    marginLeft: -10, // center horizontally
-    marginTop: -10,  // center vertically
+    marginLeft: -5,
+    marginTop: -5,
     zIndex: 10,
   },
   closestPointMarker: {
