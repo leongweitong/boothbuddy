@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
-import { View, Image, Text, StyleSheet, useWindowDimensions, ActivityIndicator, TouchableOpacity } from "react-native";
+import { View, Image, Text, StyleSheet, useWindowDimensions, ActivityIndicator, TouchableOpacity, Alert } from "react-native";
 import useBLE from "@/useBLE";
 import KalmanFilter from "@/kalmanFilter";
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -90,6 +90,7 @@ const IndoorNavigation = () => {
   const previousPosition = useRef({ x: null, y: null });
   const currentPosition = useRef({ x: null, y: null });
   const userPositionHistory = useRef([]);
+  const hasArrived = useRef(false);
   const router = useRouter();
 
   useEffect(() => {
@@ -344,6 +345,18 @@ const IndoorNavigation = () => {
     }
   }, [allDevices]);
 
+  useEffect(() => {
+    if (closestPath && closestPath.points.length > 0) {
+      const destination = closestPath.points.at(-1);
+      if (isUserAtDestination(userPosition, destination) && !hasArrived.current) {
+        hasArrived.current = true;
+        Alert.alert("🎉 You have arrived!", "You are now at your destination.");
+      } else if (!isUserAtDestination(userPosition, destination)) {
+        hasArrived.current = false; // Reset if user moves away
+      }
+    }
+  }, [userPosition]);
+
   const calculateAngle = (prev, curr) => {
     const dx = curr.x - prev.x;
     const dy = curr.y - prev.y;
@@ -572,6 +585,12 @@ const IndoorNavigation = () => {
       />
     );
   };
+
+  function isUserAtDestination(user, destination, threshold = 50) {
+    const dx = Math.abs(user.x - destination.x);
+    const dy = Math.abs(user.y - destination.y);
+    return dx <= threshold && dy <= threshold;
+  }
   
   if (loading) {
     return (
@@ -650,13 +669,20 @@ const IndoorNavigation = () => {
           </>
         )}
 
-        {/* Render the closest path */}
-        {closestPath && closestPath.points
-          .slice(0, -1) // Skip the last point, since it has no "next"
-          .map((point, index) => {
-            const nextPoint = closestPath.points[index + 1];
-            return renderPathSegment(point, nextPoint, `${closestPath.id}-${index}`);
-        })}
+        {/* Only show path if user has NOT arrived */}
+        {closestPath && closestPath.points.length > 0 && !isUserAtDestination(userPosition, closestPath.points.at(-1)) && (
+          <>
+            {closestPath.points.slice(0, -1).map((point, index) => {
+              const nextPoint = closestPath.points[index + 1];
+              return renderPathSegment(point, nextPoint, `${closestPath.id}-${index}`);
+            })}
+
+            {/* Destination point */}
+            <View
+              style={[styles.closestPointMarker, scalePosition(closestPath.points.at(-1).x, closestPath.points.at(-1).y)]}
+            />
+          </>
+        )}
 
         {/* Render the closest point marker */}
         {/* {closestPoint && (
@@ -664,13 +690,6 @@ const IndoorNavigation = () => {
             style={[styles.closestPointMarker, scalePosition(closestPoint.x, closestPoint.y)]}
           />
         )} */}
-
-        {/* Render the destination point (final point in the path) */}
-        {closestPath && closestPath.points.length > 0 && 
-          <View
-            style={[styles.closestPointMarker, scalePosition(closestPath.points[closestPath.points.length - 1].x, closestPath.points[closestPath.points.length - 1].y)]}
-          />
-        }
       </View>
 
       {/* <Text style={styles.info}>
