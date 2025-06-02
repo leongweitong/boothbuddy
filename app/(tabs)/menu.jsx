@@ -63,10 +63,10 @@ export default function Home() {
         <FontAwesome name="sign-out" size={20} color="#5d3fd3" />
       </Pressable>
 
-      <Pressable style={styles.logoutButton} onPress={navigateToPicture}>
+      {/* <Pressable style={styles.logoutButton} onPress={navigateToPicture}>
         <Text style={styles.logoutText}>Picture</Text>
         <FontAwesome name="chevron-right" size={20} color="#5d3fd3" />
-      </Pressable>
+      </Pressable> */}
     </SafeAreaView>
   );
 }

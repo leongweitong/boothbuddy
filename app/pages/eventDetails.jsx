@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, FlatList, ActivityIndicator, StyleSheet, Image, Dimensions, TouchableOpacity, ScrollView } from 'react-native';
-import { db } from '@/FirebaseConfig';
+import { db, auth } from '@/FirebaseConfig';
 import { collection, getDocs, query, where, doc, getDoc } from 'firebase/firestore';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 // import Carousel, { Pagination } from 'react-native-snap-carousel';
@@ -17,6 +17,7 @@ export default function eventDetails() {
   const [booths, setBooths] = useState([]);
   const [pictures, setPictures] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [evaluatedBoothIds, setEvaluatedBoothIds] = useState([]);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -28,7 +29,7 @@ export default function eventDetails() {
         setPictures(picturesData);
 
         const boothsRef = collection(db, 'booths');
-        const boothQuery = query(boothsRef, where('event_id', '==', event.id));
+        const boothQuery = query(boothsRef, where('event_id', '==', event.id),where('status', '==', true));
         const boothSnapshot = await getDocs(boothQuery);
         const boothsData = boothSnapshot.docs.map(doc => ({
           id: doc.id,
@@ -41,6 +42,20 @@ export default function eventDetails() {
         setLoading(false);
       }
     };
+
+    const fetchEvaluatedBooths = async () => {
+      const q = query(
+        collection(db, "evaluations"), 
+        where("userId", "==", auth.currentUser.uid),
+        where("status", "==", "submitted"),
+      );
+      const snapshot = await getDocs(q);
+      const ids = snapshot.docs.map(doc => doc.data().boothId);
+      console.log(ids)
+      setEvaluatedBoothIds(ids);
+    };
+
+    fetchEvaluatedBooths();
 
     fetchData();
   }, []);
@@ -120,21 +135,34 @@ export default function eventDetails() {
         <FlatList
           data={booths}
           keyExtractor={item => item.id}
-          renderItem={({ item }) => (
-            <TouchableOpacity
-              style={styles.card}
-              onPress={() => router.push({
-                pathname: '/pages/boothDetail',
-                params: {
-                  booth: JSON.stringify(item),
-                  event: JSON.stringify(event)
-                }
-              })}
-            >
-              <Text style={styles.boothName}>{item.booth_name}</Text>
-              <Text>Map: {item.coordinate?.x}, {item.coordinate?.y}</Text>
-            </TouchableOpacity>
-          )}
+          renderItem={({ item }) => {
+            const alreadyEvaluated = evaluatedBoothIds.includes(item.id);
+
+            return (
+              <TouchableOpacity
+                style={[
+                  styles.card,
+                  alreadyEvaluated && { opacity: 0.5 } // visually indicate disabled
+                ]}
+                disabled={alreadyEvaluated}
+                onPress={() => {
+                  if (!alreadyEvaluated) {
+                    router.push({
+                      pathname: '/pages/boothDetail',
+                      params: {
+                        booth: JSON.stringify(item),
+                        event: JSON.stringify(event)
+                      }
+                    });
+                  }
+                }}
+              >
+                <Text style={styles.boothName}>{item.booth_name}</Text>
+                <Text>Map: {item.coordinate?.x}, {item.coordinate?.y}</Text>
+                {alreadyEvaluated && <Text style={{ color: 'red' }}>(Already Evaluated)</Text>}
+              </TouchableOpacity>
+            );
+          }}
           scrollEnabled={false}
         />
       </View>
