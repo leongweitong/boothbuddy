@@ -65,7 +65,7 @@ const test = [
 import ArrowIcon from '../../assets/images/arrow-marker.png'
 
 const IndoorNavigation = () => {
-  const { scanForPeripherals, stopScan, allDevices, requestBluetoothPermission } = useBLE();
+  const { scanForPeripherals, stopScan, allDevices, requestBluetoothPermission, calculateDistance } = useBLE();
   const { booth, event } = useLocalSearchParams();
   const boothData = JSON.parse(booth);
   const eventData = JSON.parse(event);
@@ -88,6 +88,8 @@ const IndoorNavigation = () => {
   const [scaleX, setScaleX] = useState(0);
   const [scaleY, setXcaleY] = useState(0);
   const previousPosition = useRef({ x: null, y: null });
+  const currentPosition = useRef({ x: null, y: null });
+  const userPositionHistory = useRef([]);
   const router = useRouter();
 
   useEffect(() => {
@@ -131,7 +133,8 @@ const IndoorNavigation = () => {
         const pointsRef = collection(db, 'points');
         const pointsQuery = query(pointsRef, where('event_id', '==', eventData.id));
         const pointsSnapshot = await getDocs(pointsQuery);
-        const allPoints = pointsSnapshot.docs.flatMap(doc => doc.data().coordinate || []);
+        const allPoints = pointsSnapshot.docs.flatMap(doc => doc.data().points);
+        console.log(allPoints)
 
         // Set state
         setIbeacons(ibeaconsData);
@@ -184,7 +187,7 @@ const IndoorNavigation = () => {
   useEffect(() => {
     if (allDevices.length === 0) return;
   
-    const MAX_HISTORY = 10;
+    const MAX_HISTORY = 5;
   
     // Step 1: Extract relevant beacon data
     const beaconDevices = ibeacons.map((beacon) => {
@@ -262,9 +265,9 @@ const IndoorNavigation = () => {
         { x: b1.x, y: b1.y },
         { x: b2.x, y: b2.y },
         { x: b3.x, y: b3.y },
-        getDistanceFromRSSI(b1.rssi) * eventData.pixels_per_meter,
-        getDistanceFromRSSI(b2.rssi) * eventData.pixels_per_meter,
-        getDistanceFromRSSI(b3.rssi) * eventData.pixels_per_meter
+        calculateDistance(b1.rssi) * eventData.pixels_per_meter,
+        calculateDistance(b2.rssi) * eventData.pixels_per_meter,
+        calculateDistance(b3.rssi) * eventData.pixels_per_meter
       );
   
       if (result && result.x !== null && result.y !== null) {
@@ -282,6 +285,7 @@ const IndoorNavigation = () => {
   
           if (distanceSquared > THRESHOLD * THRESHOLD) {
             previousPosition.current = { ...userPosition };
+            currentPosition.current = { ...newUserPos };
             setUserPosition(newUserPos);
   
             const closest = findClosestPath(newUserPos);
@@ -292,14 +296,45 @@ const IndoorNavigation = () => {
             }
           }
         } else {
-          const closest = findClosestPresetPoint(newUserPos);
-          if (closest?.point) {
+          const smoothedPos = clampPosition(userPosition, newUserPos, { x: 50, y: 50 });
+          // Store the position in history buffer
+          userPositionHistory.current.push(smoothedPos);
+          if (userPositionHistory.current.length > MAX_HISTORY) {
+            userPositionHistory.current.shift();
+          }
 
+          // Calculate average position if enough history
+          let averagedPos = smoothedPos;
+          if (userPositionHistory.current.length === MAX_HISTORY) {
+            const total = userPositionHistory.current.reduce(
+              (acc, pos) => {
+                return {
+                  x: acc.x + pos.x,
+                  y: acc.y + pos.y,
+                };
+              },
+              { x: 0, y: 0 }
+            );
+
+            averagedPos = {
+              x: total.x / MAX_HISTORY,
+              y: total.y / MAX_HISTORY,
+            };
+          }
+
+          // Continue with averaged position
+          const closest = findClosestPresetPoint(averagedPos);
+          if (closest?.point) {
+            // ✅ Save current and previous positions for angle calc
             previousPosition.current = { ...userPosition };
+            currentPosition.current = { ...closest.point };
+
+            // ✅ Update user position
             setUserPosition(closest.point);
+
+            // ✅ Update closest path
             const closestPath = findClosestPath(closest.point);
-            if (closestPath && closestPath.path) {
-              // console.log(closestPath.path)
+            if (closestPath?.path) {
               setClosestPath(closestPath.path);
               setClosestPoint(closestPath.point);
             }
@@ -314,7 +349,7 @@ const IndoorNavigation = () => {
     const dy = curr.y - prev.y;
     // console.log((Math.atan2(dy, dx) * 180) / Math.PI)
     // let angle = 90 - ((Math.atan2(dy, dx) * 180) / Math.PI);
-    return (Math.atan2(dy, dx) * 180) / Math.PI;
+    return ((Math.atan2(dy, dx) * 180) / Math.PI) + 90;
   };
 
 
@@ -324,6 +359,20 @@ const IndoorNavigation = () => {
     const result =
       arr.reduce((sum, val, i) => sum + val * weights[i], 0) / sumWeights;
     return result;
+  }
+
+  function clampPosition(currentPos, newPos, maxDelta) {
+    const clampedX = Math.max(
+      currentPos.x - maxDelta.x,
+      Math.min(newPos.x, currentPos.x + maxDelta.x)
+    );
+
+    const clampedY = Math.max(
+      currentPos.y - maxDelta.y,
+      Math.min(newPos.y, currentPos.y + maxDelta.y)
+    );
+
+    return { x: clampedX, y: clampedY };
   }
 
   const findClosestPresetPoint = (userPos) => {
@@ -347,32 +396,58 @@ const IndoorNavigation = () => {
   };
 
   // Find the closest path and point to the user
+  // const findClosestPath = (userPos) => {
+  //   if (!userPos || userPos.x === null || userPos.y === null) return null;
+    
+  //   let closestPath = null;
+  //   let closestPoint = null;
+  //   let minDistance = Infinity;
+    
+  //   // Check each path
+  //   for (const path of paths) {
+  //     // Check each point in the path
+  //     for (let i = 0; i < path.points.length; i++) {
+  //       const point = path.points[i];
+  //       const dx = point.x - userPos.x;
+  //       const dy = point.y - userPos.y;
+  //       const distance = Math.sqrt(dx * dx + dy * dy);
+        
+  //       if (distance < minDistance) {
+  //         minDistance = distance;
+  //         closestPath = path;
+  //         closestPoint = point;
+  //       }
+  //     }
+  //   }
+    
+  //   return { path: closestPath, point: closestPoint, distance: minDistance };
+  // }; 
+
+  // Find the closest path based on the first point of each path
   const findClosestPath = (userPos) => {
     if (!userPos || userPos.x === null || userPos.y === null) return null;
-    
+
     let closestPath = null;
     let closestPoint = null;
     let minDistance = Infinity;
-    
-    // Check each path
+
     for (const path of paths) {
-      // Check each point in the path
-      for (let i = 0; i < path.points.length; i++) {
-        const point = path.points[i];
-        const dx = point.x - userPos.x;
-        const dy = point.y - userPos.y;
-        const distance = Math.sqrt(dx * dx + dy * dy);
-        
-        if (distance < minDistance) {
-          minDistance = distance;
-          closestPath = path;
-          closestPoint = point;
-        }
+      const firstPoint = path.points[0];
+      if (!firstPoint) continue;
+
+      const dx = firstPoint.x - userPos.x;
+      const dy = firstPoint.y - userPos.y;
+      const distance = Math.sqrt(dx * dx + dy * dy);
+
+      if (distance < minDistance) {
+        minDistance = distance;
+        closestPath = path;
+        closestPoint = firstPoint;
       }
     }
-    
+
     return { path: closestPath, point: closestPoint, distance: minDistance };
-  }; 
+  };
   
   function getDistanceFromRSSI(rssi) {
     const absRSSI = Math.abs(rssi);
@@ -568,7 +643,7 @@ const IndoorNavigation = () => {
                 styles.arrowImage,
                 scalePosition(userPosition.x, userPosition.y),
                 {
-                  transform: [{ rotate: `${calculateAngle(previousPosition.current, userPosition)}deg` }],
+                  transform: [{ rotate: `${calculateAngle(previousPosition.current, currentPosition.current)}deg` }],
                 }
               ]}
             />
@@ -584,11 +659,11 @@ const IndoorNavigation = () => {
         })}
 
         {/* Render the closest point marker */}
-        {closestPoint && (
+        {/* {closestPoint && (
           <View
             style={[styles.closestPointMarker, scalePosition(closestPoint.x, closestPoint.y)]}
           />
-        )}
+        )} */}
 
         {/* Render the destination point (final point in the path) */}
         {closestPath && closestPath.points.length > 0 && 
@@ -641,7 +716,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     marginLeft: -5,
     marginTop: -5,
-    zIndex: 10,
+    zIndex: 100,
   },
   closestPointMarker: {
     width: 20,
