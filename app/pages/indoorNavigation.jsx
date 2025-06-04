@@ -7,61 +7,6 @@ import { doc, getDoc, getDocs, collection, query, where } from "firebase/firesto
 import { db } from "@/FirebaseConfig";
 import { Ionicons } from '@expo/vector-icons';
 
-const test = [
-  {
-    x: 310,
-    y: 175
-  },
-  {
-    x: 310,
-    y: 260
-  },
-  {
-    x: 310,
-    y: 360
-  },
-  {
-    x: 310,
-    y: 460
-  },
-  {
-    x: 310,
-    y: 570
-  },
-  {
-    x: 310,
-    y: 85
-  },
-  {
-    x: 375,
-    y: 110
-  },
-  {
-    x: 441,
-    y: 119
-  },
-  {
-    x: 520,
-    y: 85
-  },
-  {
-    x: 520,
-    y: 170
-  },
-  {
-    x: 310,
-    y: 642
-  },
-  {
-    x: 386,
-    y: 671
-  },
-  {
-    x: 477,
-    y: 672
-  },
-]
-
 import ArrowIcon from '../../assets/images/arrow-marker.png'
 
 const IndoorNavigation = () => {
@@ -361,8 +306,8 @@ const IndoorNavigation = () => {
     const dx = curr.x - prev.x;
     const dy = curr.y - prev.y;
     // console.log((Math.atan2(dy, dx) * 180) / Math.PI)
-    // let angle = 90 - ((Math.atan2(dy, dx) * 180) / Math.PI);
-    return ((Math.atan2(dy, dx) * 180) / Math.PI) + 90;
+    let angle = (Math.atan2(dy, dx) * 180) / Math.PI;
+    return angle !== 0 ? angle+90 : angle;
   };
 
 
