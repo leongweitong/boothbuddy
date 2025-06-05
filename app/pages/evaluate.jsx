@@ -146,6 +146,7 @@ export default function EvaluatePage() {
       responses,
       status: final ? 'submitted' : 'draft',
       createdAt: Timestamp.now(),
+      userType
     };
 
     try {

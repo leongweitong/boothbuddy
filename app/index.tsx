@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { View, TextInput, Button, StyleSheet, Alert, Image, SafeAreaView, Text } from 'react-native';
-import { auth } from '../FirebaseConfig';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import { db, auth } from '../FirebaseConfig';
+import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { useRouter } from 'expo-router';
 import { Link } from 'expo-router';
+import { doc, getDoc } from 'firebase/firestore';
 
 const APPICON = require('../assets/images/small_splash.png');
 
@@ -16,8 +17,31 @@ const Index = () => {
   const signIn = async () => {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      console.log('Signed in as:', userCredential.user.email);
-      router.replace('/(tabs)');
+      const user = userCredential.user;
+
+      // Fetch user's role from Firestore
+      const userDocRef = doc(db, 'users', user.uid);
+      const userDocSnap = await getDoc(userDocRef);
+
+      if (userDocSnap.exists()) {
+        const userData = userDocSnap.data();
+        const role = userData.userType;
+
+        if (role === 'admin') {
+          // Sign out admin users
+          await signOut(auth);
+          Alert.alert('Access Denied', 'Admin users are not allowed to sign in.');
+          return;
+        }
+
+        // Proceed to app for allowed roles
+        console.log('Signed in as:', user.email, 'Role:', role);
+        router.replace('/(tabs)');
+      } else {
+        // User document not found
+        await signOut(auth);
+        Alert.alert('Error', 'User profile not found.');
+      }
     } catch (error: any) {
       Alert.alert('Sign in failed', error.message);
     }
