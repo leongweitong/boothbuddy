@@ -45,7 +45,8 @@ export default function HomeScreen() {
             .filter(event => {
               console.log(event.event_time.toDate() >= now)
               return event.event_time.toDate() >= now
-            });
+            })
+            .sort((a, b) => a.event_time.toDate() - b.event_time.toDate());
         } else if (userData.userType === 'judge') {
           // Step 1: Fetch assign_event documents where user_id matches
           const assignEventSnapshot = await getDocs(collection(db, 'assign_event'));
@@ -70,7 +71,8 @@ export default function HomeScreen() {
                 id: snap.id,
                 ...snap.data(),
               }))
-              .filter(event => event.event_time.toDate() >= now);
+              .filter(event => event.event_time.toDate() >= now)
+              .sort((a, b) => a.event_time.toDate() - b.event_time.toDate());
           }
         }
 
