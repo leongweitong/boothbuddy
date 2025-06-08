@@ -34,6 +34,12 @@ const Index = () => {
           return;
         }
 
+        if(!userData.status) {
+          await signOut(auth);
+          Alert.alert('Access Denied', 'You account have been diable, call admin.');
+          return;
+        }
+
         // Proceed to app for allowed roles
         console.log('Signed in as:', user.email, 'Role:', role);
         router.replace('/(tabs)');
